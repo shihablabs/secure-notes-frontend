@@ -64,9 +64,26 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
   const [activeTab, setActiveTab] = useState('notes');
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileRef = useRef(null);
 
-  // Ref to scroll smoothly to $lookup box
-  const lookupSectionRef = useRef(null);
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const p = name.trim().split(/\s+/);
+    if (p.length === 1) return p[0].substring(0, 2).toUpperCase();
+    return (p[0][0] + p[p.length - 1][0]).toUpperCase();
+  };
 
   // Auth Form State
   const [isRegister, setIsRegister] = useState(false);
@@ -90,16 +107,6 @@ export default function App() {
   const [newNote, setNewNote] = useState({ title: '', content: '' });
   const [editingNote, setEditingNote] = useState(null);
 
-  // Aggregation 1 State (Group by Interests)
-  const [interestsData, setInterestsData] = useState([]);
-  const [loadingInterests, setLoadingInterests] = useState(false);
-
-  // Aggregation 2 State (Posts & $lookup)
-  const [posts, setPosts] = useState([]);
-  const [newPost, setNewPost] = useState({ title: '', content: '' });
-  const [lookupUserId, setLookupUserId] = useState('');
-  const [lookupResult, setLookupResult] = useState(null);
-
   // Admin Users State
   const [adminUsers, setAdminUsers] = useState([]);
   const [userPage, setUserPage] = useState(1);
@@ -117,12 +124,6 @@ export default function App() {
   useEffect(() => {
     if (user && activeTab === 'notes') {
       fetchNotes(notePage, pageSize);
-    }
-    if (user && activeTab === 'interests') {
-      fetchInterests();
-    }
-    if (user && activeTab === 'posts') {
-      fetchPosts();
     }
     if (user && user.role === 'admin' && activeTab === 'admin') {
       fetchAdminUsers(userPage);
@@ -272,68 +273,6 @@ export default function App() {
       if (sortOrder === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
-
-  // --- AGGREGATION 1: GROUP BY INTERESTS ---
-  const fetchInterests = async () => {
-    setLoadingInterests(true);
-    try {
-      const data = await request('/api/users/by-interests');
-      setInterestsData(data);
-    } catch (err) {
-      notifyError(err.message);
-    } finally {
-      setLoadingInterests(false);
-    }
-  };
-
-  // --- AGGREGATION 2: USER POSTS ($lookup) ---
-  const fetchPosts = async () => {
-    try {
-      const data = await request('/api/posts?limit=10');
-      setPosts(data.posts || []);
-    } catch (err) {
-      notifyError(err.message);
-    }
-  };
-
-  const handleCreatePost = async (e) => {
-    e.preventDefault();
-    try {
-      await request('/api/posts', {
-        method: 'POST',
-        body: JSON.stringify(newPost)
-      });
-      setNewPost({ title: '', content: '' });
-      notifySuccess('Post Published', 'Visible across the public platform');
-      fetchPosts();
-    } catch (err) {
-      notifyError(err.message);
-    }
-  };
-
-  const handleLookup = async (idToLookup) => {
-    const id = idToLookup || lookupUserId;
-    if (!id) {
-      notifyError('Please specify a valid User ID to perform $lookup aggregation.');
-      return;
-    }
-    try {
-      const data = await request(`/api/posts/user/${id}`);
-      setLookupResult(data);
-      toast.success(`$lookup: ${data.posts ? data.posts.length : 0} posts found`);
-    } catch (err) {
-      notifyError(err.message);
-    }
-  };
-
-  // Auto-Lookup this Author with smooth scroll
-  const handleAutoLookup = (authorId) => {
-    setLookupUserId(authorId);
-    handleLookup(authorId);
-    if (lookupSectionRef.current) {
-      lookupSectionRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
 
   // --- ADMIN USER MANAGEMENT HANDLERS ---
   const fetchAdminUsers = async (page = 1) => {
@@ -631,51 +570,85 @@ export default function App() {
           }
         }}
       />
-      {/* Top Academic Header */}
+      {/* Executive Academic Header */}
       <header className="portal-header">
-        <div>
-          <h1 className="portal-title">Secure Note-Taking Portal</h1>
-          <p className="portal-subtitle">
-            Authenticated: <strong>{user.name}</strong> &lt;{user.email}&gt;
-          </p>
+        <div className="portal-brand">
+          <div className="brand-logo" title="SecureNotes Enterprise">
+            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="portal-title">SecureNotes</h1>
+            <p className="portal-subtitle">Enterprise Encrypted Workspace</p>
+          </div>
         </div>
-        <div className="header-user-info">
-          <span className={`badge-role ${user.role}`}>{user.role}</span>
-          <button className="btn-gov btn-gov-secondary btn-gov-sm" onClick={handleLogout}>
-            Sign Out
+
+        {/* Header Navigation Tabs */}
+        <nav className="header-nav-tabs">
+          <button
+            type="button"
+            className={`nav-tab-btn ${activeTab === 'notes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('notes')}
+          >
+            My Notes
           </button>
+          {user.role === 'admin' && (
+            <button
+              type="button"
+              className={`nav-tab-btn ${activeTab === 'admin' ? 'active' : ''}`}
+              onClick={() => setActiveTab('admin')}
+            >
+              User Management
+            </button>
+          )}
+        </nav>
+
+        {/* Profile Avatar Dropdown */}
+        <div className="profile-menu-wrapper" ref={profileRef}>
+          <button
+            type="button"
+            className="profile-btn"
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            aria-expanded={showProfileMenu}
+          >
+            <div className="profile-avatar-circle">
+              {getInitials(user.name)}
+            </div>
+            <div className="profile-details-column">
+              <span className="profile-name-text">{user.name}</span>
+              <span className={`profile-role-tag ${user.role}`}>{user.role}</span>
+            </div>
+            <span className="profile-caret">▼</span>
+          </button>
+
+          {showProfileMenu && (
+            <div className="profile-dropdown-card">
+              <div className="dropdown-user-header">
+                <span className="dropdown-user-name">{user.name}</span>
+                <span className="dropdown-user-email">{user.email}</span>
+                <div style={{ marginTop: '6px' }}>
+                  <span className={`badge-role ${user.role}`}>{user.role}</span>
+                </div>
+              </div>
+              <div className="dropdown-divider" />
+              <button
+                type="button"
+                className="dropdown-action-btn logout-action"
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  handleLogout();
+                }}
+              >
+                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ marginRight: '8px' }}>
+                  <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Sign Out
+              </button>
+            </div>
+          )}
         </div>
       </header>
-
-      {/* Clean Horizontal Tabs */}
-      <nav className="portal-tabs">
-        <button
-          className={`tab-link ${activeTab === 'notes' ? 'active' : ''}`}
-          onClick={() => setActiveTab('notes')}
-        >
-          Notes Repository {user.role === 'admin' ? '(Admin View)' : '(Personal)'}
-        </button>
-        <button
-          className={`tab-link ${activeTab === 'interests' ? 'active' : ''}`}
-          onClick={() => setActiveTab('interests')}
-        >
-          Scenario 1: Group by Interests
-        </button>
-        <button
-          className={`tab-link ${activeTab === 'posts' ? 'active' : ''}`}
-          onClick={() => setActiveTab('posts')}
-        >
-          Scenario 2: User Posts ($lookup)
-        </button>
-        {user.role === 'admin' && (
-          <button
-            className={`tab-link ${activeTab === 'admin' ? 'active' : ''}`}
-            onClick={() => setActiveTab('admin')}
-          >
-            Administration Panel
-          </button>
-        )}
-      </nav>
 
       {/* Edit Note Popup Modal */}
       {editingNote && (
@@ -965,224 +938,7 @@ export default function App() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 2: AGGREGATION SCENARIO 1 (GROUP BY INTERESTS) */}
-      {/* ========================================================================= */}
-      {activeTab === 'interests' && (
-        <div className="academic-panel">
-          <div className="panel-header-row">
-            <div>
-              <h3 className="panel-heading">Aggregation Scenario 1: Group by Interests</h3>
-              <p className="panel-subtext">
-                Constraint: Single <code>collection.aggregate()</code> call using $unwind, $group, and $sort.
-              </p>
-            </div>
-            <button className="btn-gov btn-gov-secondary btn-gov-sm" onClick={fetchInterests}>
-              Refresh Aggregation
-            </button>
-          </div>
-
-          {loadingInterests ? (
-            <p style={{ padding: '20px 0', color: 'var(--text-muted)' }}>Executing MongoDB aggregation pipeline...</p>
-          ) : interestsData.length === 0 ? (
-            <p style={{ padding: '20px 0', color: 'var(--text-muted)' }}>No interests data available.</p>
-          ) : (
-            <div>
-              {interestsData.map((group) => (
-                <div
-                  key={group.interest}
-                  style={{
-                    borderBottom: '1px solid var(--border-light)',
-                    padding: '12px 0'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="meta-tag">{group.interest}</span>
-                    <strong style={{ fontSize: '13px' }}>
-                      {group.totalUsers} {group.totalUsers === 1 ? 'User' : 'Users'}
-                    </strong>
-                  </div>
-                  <ul style={{ paddingLeft: '20px', marginTop: '6px', fontSize: '13px', textAlign: 'left' }}>
-                    {group.users.map((u) => (
-                      <li key={u._id} style={{ margin: '3px 0' }}>
-                        {u.name} — <span style={{ color: 'var(--text-muted)' }}>{u.email}</span> (
-                        <span style={{ fontSize: '11px', textTransform: 'uppercase' }}>{u.role}</span>){' '}
-                        <button
-                          className="action-link-btn"
-                          style={{ marginLeft: '6px', fontSize: '11px' }}
-                          onClick={() => copyToClipboard(u._id, 'User ID Copied')}
-                        >
-                          Copy ID
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 3: AGGREGATION SCENARIO 2 (POSTS & $lookup) */}
-      {/* ========================================================================= */}
-      {activeTab === 'posts' && (
-        <div>
-          {/* Post Creation */}
-          <div className="academic-panel">
-            <div className="panel-header-row">
-              <div>
-                <h3 className="panel-heading">Publish Public Post</h3>
-                <p className="panel-subtext">Stored in Posts collection; visible to everyone.</p>
-              </div>
-            </div>
-            <form onSubmit={handleCreatePost}>
-              <div className="field-group">
-                <label className="field-label">Post Title</label>
-                <input
-                  type="text"
-                  required
-                  className="field-input"
-                  placeholder="Enter post title..."
-                  value={newPost.title}
-                  onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
-                />
-              </div>
-              <div className="field-group">
-                <label className="field-label">Post Content</label>
-                <textarea
-                  required
-                  className="field-textarea"
-                  placeholder="Write post content..."
-                  value={newPost.content}
-                  onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
-                />
-              </div>
-              <button type="submit" className="btn-gov btn-gov-primary">
-                Publish Post
-              </button>
-            </form>
-          </div>
-
-          {/* Interactive $lookup Inspection */}
-          <div
-            ref={lookupSectionRef}
-            className="academic-panel"
-            style={{ borderLeft: '4px solid var(--primary-navy)' }}
-          >
-            <div className="panel-header-row">
-              <div>
-                <h3 className="panel-heading">Scenario 2: User Posts ($lookup Stage)</h3>
-                <p className="panel-subtext">
-                  Constraint: Single aggregation pipeline with <code>$lookup</code> stage. Supported by index{' '}
-                  <code>postSchema.index({'{ user: 1 }'})</code>.
-                </p>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-              <input
-                type="text"
-                className="field-input"
-                placeholder="Paste Target User ObjectId or click button below"
-                value={lookupUserId}
-                onChange={(e) => setLookupUserId(e.target.value)}
-              />
-              <button className="btn-gov btn-gov-primary" onClick={() => handleLookup()}>
-                Run $lookup
-              </button>
-            </div>
-
-            {lookupResult && (
-              <div
-                style={{
-                  background: '#f8fafc',
-                  border: '1px solid var(--border-light)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '14px',
-                  fontSize: '13px',
-                  textAlign: 'left'
-                }}
-              >
-                <h4 style={{ color: 'var(--primary-navy)' }}>
-                  User: {lookupResult.name} &lt;{lookupResult.email}&gt;
-                </h4>
-                <p style={{ color: 'var(--text-muted)', margin: '4px 0 10px 0' }}>
-                  Total Joined Posts: <strong>{lookupResult.posts ? lookupResult.posts.length : 0}</strong>
-                </p>
-                {lookupResult.posts && lookupResult.posts.length > 0 ? (
-                  lookupResult.posts.map((p) => (
-                    <div
-                      key={p._id}
-                      style={{
-                        background: '#ffffff',
-                        border: '1px solid var(--border-light)',
-                        padding: '10px 12px',
-                        marginBottom: '8px',
-                        borderRadius: 'var(--radius-sm)'
-                      }}
-                    >
-                      <strong>{p.title}</strong>
-                      <p style={{ fontSize: '13px', color: 'var(--text-body)', marginTop: '2px' }}>{p.content}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p style={{ color: 'var(--text-muted)' }}>No posts associated with this user.</p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Public Posts Feed */}
-          <div className="academic-panel">
-            <div className="panel-header-row">
-              <h3 className="panel-heading">Public Posts Stream ({posts.length} entries)</h3>
-            </div>
-            {posts.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', padding: '16px 0' }}>No records published yet.</p>
-            ) : (
-              posts.map((post) => (
-                <div
-                  key={post._id}
-                  style={{
-                    borderBottom: '1px solid #f1f5f9',
-                    padding: '12px 0',
-                    textAlign: 'left'
-                  }}
-                >
-                  <h4 style={{ fontSize: '15px', color: 'var(--text-dark)' }}>{post.title}</h4>
-                  <p style={{ fontSize: '13px', color: 'var(--text-body)', margin: '4px 0 8px 0' }}>{post.content}</p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Author: <strong>{post.user ? post.user.name : 'Unknown'}</strong> (
-                      {post.user ? post.user.email : ''})
-                    </span>
-                    {post.user && (
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          className="action-link-btn"
-                          style={{ fontSize: '12px' }}
-                          onClick={() => copyToClipboard(post.user._id, 'Author ID Copied')}
-                        >
-                          Copy ID
-                        </button>
-                        <button
-                          className="btn-gov btn-gov-primary btn-gov-sm"
-                          onClick={() => handleAutoLookup(post.user._id)}
-                        >
-                          ⚡ Auto-Lookup Author
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 4: ADMINISTRATION PANEL (ADMIN ONLY) */}
+      {/* USER MANAGEMENT PANEL (ADMIN ONLY) */}
       {/* ========================================================================= */}
       {user.role === 'admin' && activeTab === 'admin' && (
         <div>
@@ -1284,7 +1040,7 @@ export default function App() {
               <div>
                 <h3 className="panel-heading">System User Accounts</h3>
                 <p className="panel-subtext">
-                  Supported by index: <code>{'{ createdAt: -1 }'}</code>
+                  Registered user accounts and permission roles
                 </p>
               </div>
             </div>
@@ -1367,6 +1123,20 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Executive Portal Footer */}
+      <footer className="portal-footer">
+        <div>
+          <span>&copy; {new Date().getFullYear()} SecureNotes Enterprise Inc. All rights reserved.</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span className="footer-badge">
+            <span className="status-dot-active" />
+            256-bit Encrypted Session
+          </span>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Role-Based Access Control</span>
+        </div>
+      </footer>
     </div>
   );
 }
