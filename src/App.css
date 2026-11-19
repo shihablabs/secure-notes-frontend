@@ -172,12 +172,18 @@
   text-align: left;
 }
 
+.field-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
 .field-label {
   display: block;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-dark);
-  margin-bottom: 6px;
   text-align: left;
 }
 
@@ -210,6 +216,94 @@
   color: var(--text-muted);
   margin-top: 4px;
   text-align: left;
+}
+
+/* Password Field Wrapper & Embedded Eye Toggle */
+.password-field-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field-wrapper .field-input {
+  padding-right: 42px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+
+.password-toggle-btn:hover {
+  color: var(--primary-navy);
+}
+
+/* Generate Password Action Link */
+.action-link-btn {
+  background: none;
+  border: none;
+  color: var(--primary-navy);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.action-link-btn:hover {
+  color: var(--primary-hover);
+}
+
+/* Password Strength Indicator */
+.strength-indicator {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.strength-track {
+  height: 4px;
+  flex: 1;
+  background-color: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.strength-text {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Quick Fill Demo Banner */
+.demo-fill-box {
+  background-color: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* Buttons */
@@ -257,7 +351,7 @@
 }
 
 .btn-gov-sm {
-  padding: 5px 12px;
+  padding: 4px 10px;
   font-size: 12px;
 }
 

@@ -37,6 +37,41 @@ const confirmDialog = async (title, text = '') => {
   return result.isConfirmed;
 };
 
+// Tricky Utility: Secure Password Generator
+const generateStrongPassword = () => {
+  const alphaUpper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const alphaLower = 'abcdefghijkmnpqrstuvwxyz';
+  const numbers = '23456789';
+  const symbols = '!@#$%^&*';
+  const all = alphaUpper + alphaLower + numbers + symbols;
+
+  let pwd = '';
+  pwd += alphaUpper.charAt(Math.floor(Math.random() * alphaUpper.length));
+  pwd += alphaLower.charAt(Math.floor(Math.random() * alphaLower.length));
+  pwd += numbers.charAt(Math.floor(Math.random() * numbers.length));
+  pwd += symbols.charAt(Math.floor(Math.random() * symbols.length));
+
+  for (let i = 4; i < 12; i++) {
+    pwd += all.charAt(Math.floor(Math.random() * all.length));
+  }
+  return pwd.split('').sort(() => 0.5 - Math.random()).join('');
+};
+
+// Password Strength Evaluator
+const checkPasswordStrength = (pass) => {
+  if (!pass) return { score: 0, label: '', color: '#e2e8f0' };
+  if (pass.length < 6) return { score: 25, label: 'Weak (min 6 chars)', color: '#dc2626' };
+  const hasUpper = /[A-Z]/.test(pass);
+  const hasNumber = /[0-9]/.test(pass);
+  const hasSymbol = /[^A-Za-z0-9]/.test(pass);
+  const criteria = [hasUpper, hasNumber, hasSymbol].filter(Boolean).length;
+
+  if (pass.length >= 8 && criteria >= 2) {
+    return { score: 100, label: 'Strong', color: '#15803d' };
+  }
+  return { score: 60, label: 'Moderate', color: '#d97706' };
+};
+
 export default function App() {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
@@ -47,6 +82,7 @@ export default function App() {
 
   // Auth Form State
   const [isRegister, setIsRegister] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [authData, setAuthData] = useState({
     name: '',
     email: '',
@@ -77,6 +113,7 @@ export default function App() {
   const [adminUsers, setAdminUsers] = useState([]);
   const [userPage, setUserPage] = useState(1);
   const [userPages, setUserPages] = useState(1);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [newAdminUser, setNewAdminUser] = useState({
     name: '',
     email: '',
@@ -107,6 +144,12 @@ export default function App() {
       fetchAdminUsers(userPage);
     }
   }, [user, activeTab, notePage, userPage]);
+
+  // Copy helper
+  const copyToClipboard = (text, label = 'Copied') => {
+    navigator.clipboard.writeText(text);
+    notifySuccess(label, text);
+  };
 
   // --- AUTH HANDLERS ---
   const handleAuthSubmit = async (e) => {
@@ -307,10 +350,13 @@ export default function App() {
     }
   };
 
+  // Strength info for current password
+  const regStrength = checkPasswordStrength(authData.password);
+
   // --- IF NOT LOGGED IN: ACADEMIC AUTHENTICATION SCREEN ---
   if (!user) {
     return (
-      <div className="container" style={{ maxWidth: '440px', marginTop: '60px' }}>
+      <div className="container" style={{ maxWidth: '450px', marginTop: '60px' }}>
         <div className="academic-panel">
           <div className="panel-header-row">
             <div>
@@ -347,15 +393,68 @@ export default function App() {
             </div>
 
             <div className="field-group">
-              <label className="field-label">Password</label>
-              <input
-                type="password"
-                required
-                className="field-input"
-                value={authData.password}
-                onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
-                placeholder="••••••••"
-              />
+              <div className="field-label-row">
+                <label className="field-label">Password</label>
+                {isRegister && (
+                  <button
+                    type="button"
+                    className="action-link-btn"
+                    onClick={() => {
+                      const strong = generateStrongPassword();
+                      setAuthData({ ...authData, password: strong });
+                      setShowPassword(true);
+                      notifySuccess('Password Generated', 'Auto-filled strong credentials');
+                    }}
+                  >
+                    Suggest Strong Password
+                  </button>
+                )}
+              </div>
+              <div className="password-field-wrapper">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  className="field-input"
+                  value={authData.password}
+                  onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    // Eye slash icon
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    // Eye icon
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+
+              {/* Password Strength Indicator for Registration */}
+              {isRegister && authData.password && (
+                <div className="strength-indicator">
+                  <div className="strength-track">
+                    <div
+                      className="strength-fill"
+                      style={{ width: `${regStrength.score}%`, backgroundColor: regStrength.color }}
+                    ></div>
+                  </div>
+                  <span className="strength-text" style={{ color: regStrength.color }}>
+                    {regStrength.label}
+                  </span>
+                </div>
+              )}
             </div>
 
             {isRegister && (
@@ -656,7 +755,14 @@ export default function App() {
                     {group.users.map((u) => (
                       <li key={u._id} style={{ margin: '3px 0' }}>
                         {u.name} — <span style={{ color: 'var(--text-muted)' }}>{u.email}</span> (
-                        <span style={{ fontSize: '11px', textTransform: 'uppercase' }}>{u.role}</span>)
+                        <span style={{ fontSize: '11px', textTransform: 'uppercase' }}>{u.role}</span>){' '}
+                        <button
+                          className="action-link-btn"
+                          style={{ marginLeft: '6px', fontSize: '11px' }}
+                          onClick={() => copyToClipboard(u._id, 'User ID Copied')}
+                        >
+                          Copy ID
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -747,7 +853,7 @@ export default function App() {
                   User: {lookupResult.name} &lt;{lookupResult.email}&gt;
                 </h4>
                 <p style={{ color: 'var(--text-muted)', margin: '4px 0 10px 0' }}>
-                  Total Joined Posts: <strong>{lookupResult.posts ? lookupResult.posts.length : 0}</strong>
+                  Joined Posts: <strong>{lookupResult.posts ? lookupResult.posts.length : 0}</strong>
                 </p>
                 {lookupResult.posts && lookupResult.posts.length > 0 ? (
                   lookupResult.posts.map((p) => (
@@ -797,15 +903,24 @@ export default function App() {
                       {post.user ? post.user.email : ''})
                     </span>
                     {post.user && (
-                      <button
-                        className="btn-gov btn-gov-secondary btn-gov-sm"
-                        onClick={() => {
-                          setLookupUserId(post.user._id);
-                          handleLookup(post.user._id);
-                        }}
-                      >
-                        Inspect via $lookup
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          className="action-link-btn"
+                          style={{ fontSize: '12px' }}
+                          onClick={() => copyToClipboard(post.user._id, 'Author ID Copied')}
+                        >
+                          Copy ID
+                        </button>
+                        <button
+                          className="btn-gov btn-gov-secondary btn-gov-sm"
+                          onClick={() => {
+                            setLookupUserId(post.user._id);
+                            handleLookup(post.user._id);
+                          }}
+                        >
+                          Inspect via $lookup
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -853,14 +968,37 @@ export default function App() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 <div className="field-group">
-                  <label className="field-label">Password</label>
-                  <input
-                    type="password"
-                    required
-                    className="field-input"
-                    value={newAdminUser.password}
-                    onChange={(e) => setNewAdminUser({ ...newAdminUser, password: e.target.value })}
-                  />
+                  <div className="field-label-row">
+                    <label className="field-label">Password</label>
+                    <button
+                      type="button"
+                      className="action-link-btn"
+                      onClick={() => {
+                        const strong = generateStrongPassword();
+                        setNewAdminUser({ ...newAdminUser, password: strong });
+                        setShowAdminPassword(true);
+                        notifySuccess('Generated', 'Strong password populated');
+                      }}
+                    >
+                      Suggest
+                    </button>
+                  </div>
+                  <div className="password-field-wrapper">
+                    <input
+                      type={showAdminPassword ? 'text' : 'password'}
+                      required
+                      className="field-input"
+                      value={newAdminUser.password}
+                      onChange={(e) => setNewAdminUser({ ...newAdminUser, password: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle-btn"
+                      onClick={() => setShowAdminPassword(!showAdminPassword)}
+                    >
+                      {showAdminPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
                 </div>
                 <div className="field-group">
                   <label className="field-label">Role</label>
@@ -931,6 +1069,13 @@ export default function App() {
                           : 'None'}
                       </td>
                       <td style={{ textAlign: 'right' }}>
+                        <button
+                          className="action-link-btn"
+                          style={{ marginRight: '10px' }}
+                          onClick={() => copyToClipboard(u._id, 'User ID Copied')}
+                        >
+                          Copy ID
+                        </button>
                         {u._id !== user._id && (
                           <button
                             className="btn-gov btn-gov-danger btn-gov-sm"
