@@ -57,21 +57,6 @@ const generateStrongPassword = () => {
   return pwd.split('').sort(() => 0.5 - Math.random()).join('');
 };
 
-// Password Strength Evaluator
-const checkPasswordStrength = (pass) => {
-  if (!pass) return { score: 0, label: '', color: '#e2e8f0' };
-  if (pass.length < 6) return { score: 25, label: 'Weak (min 6 chars)', color: '#dc2626' };
-  const hasUpper = /[A-Z]/.test(pass);
-  const hasNumber = /[0-9]/.test(pass);
-  const hasSymbol = /[^A-Za-z0-9]/.test(pass);
-  const criteria = [hasUpper, hasNumber, hasSymbol].filter(Boolean).length;
-
-  if (pass.length >= 8 && criteria >= 2) {
-    return { score: 100, label: 'Strong', color: '#15803d' };
-  }
-  return { score: 60, label: 'Moderate', color: '#d97706' };
-};
-
 export default function App() {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
@@ -79,6 +64,9 @@ export default function App() {
   });
   const [activeTab, setActiveTab] = useState('notes');
   const [systemHealth, setSystemHealth] = useState({ status: 'Connecting...', database: 'Checking' });
+
+  // Custom Inline Toast State (No big popups for minor actions)
+  const [inlineToast, setInlineToast] = useState('');
 
   // Auth Form State
   const [isRegister, setIsRegister] = useState(false);
@@ -91,11 +79,13 @@ export default function App() {
     interests: 'chess, reading'
   });
 
-  // Notes State
+  // Notes State & Enterprise Table Controls
   const [notes, setNotes] = useState([]);
   const [notePage, setNotePage] = useState(1);
   const [notePages, setNotePages] = useState(1);
   const [noteSearch, setNoteSearch] = useState('');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest', 'alpha'
   const [newNote, setNewNote] = useState({ title: '', content: '' });
   const [editingNote, setEditingNote] = useState(null);
 
@@ -121,6 +111,12 @@ export default function App() {
     role: 'user',
     interests: ''
   });
+
+  // Display custom inline toast for 2.5 seconds
+  const triggerInlineToast = (msg) => {
+    setInlineToast(msg);
+    setTimeout(() => setInlineToast(''), 2500);
+  };
 
   // Check backend health on initial load
   useEffect(() => {
@@ -148,7 +144,7 @@ export default function App() {
   // Copy helper
   const copyToClipboard = (text, label = 'Copied') => {
     navigator.clipboard.writeText(text);
-    notifySuccess(label, text);
+    triggerInlineToast(`✓ ${label}`);
   };
 
   // --- AUTH HANDLERS ---
@@ -246,12 +242,44 @@ export default function App() {
     }
   };
 
-  // Filter notes locally by search keyword
-  const filteredNotes = notes.filter(
-    (n) =>
-      n.title.toLowerCase().includes(noteSearch.toLowerCase()) ||
-      n.content.toLowerCase().includes(noteSearch.toLowerCase())
-  );
+  // Export Notes to CSV (Enterprise academic reporting)
+  const exportNotesToCSV = () => {
+    if (!notes.length) {
+      notifyError('No notes available to export.');
+      return;
+    }
+    const headers = 'ID,Title,Content,Author,Created Date\n';
+    const rows = notes
+      .map((n) => {
+        const title = `"${n.title.replace(/"/g, '""')}"`;
+        const content = `"${n.content.replace(/"/g, '""')}"`;
+        const author = n.user ? `"${n.user.name}"` : '"Me"';
+        const date = `"${new Date(n.createdAt).toLocaleDateString()}"`;
+        return `${n._id},${title},${content},${author},${date}`;
+      })
+      .join('\n');
+
+    const blob = new Blob([headers + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `notes_export_${Date.now()}.csv`;
+    a.click();
+    triggerInlineToast('✓ Exported to CSV');
+  };
+
+  // Filter & Sort notes locally
+  const processedNotes = notes
+    .filter(
+      (n) =>
+        n.title.toLowerCase().includes(noteSearch.toLowerCase()) ||
+        n.content.toLowerCase().includes(noteSearch.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortOrder === 'alpha') return a.title.localeCompare(b.title);
+      if (sortOrder === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
 
   // --- AGGREGATION 1: GROUP BY INTERESTS ---
   const fetchInterests = async () => {
@@ -350,8 +378,12 @@ export default function App() {
     }
   };
 
-  // Strength info for current password
-  const regStrength = checkPasswordStrength(authData.password);
+  // Dynamic Password Validation Rules for Registration
+  const pass = authData.password;
+  const ruleLength = pass.length >= 8;
+  const ruleUpper = /[A-Z]/.test(pass);
+  const ruleNumber = /[0-9]/.test(pass);
+  const ruleSymbol = /[^A-Za-z0-9]/.test(pass);
 
   // --- IF NOT LOGGED IN: ACADEMIC AUTHENTICATION SCREEN ---
   if (!user) {
@@ -395,20 +427,23 @@ export default function App() {
             <div className="field-group">
               <div className="field-label-row">
                 <label className="field-label">Password</label>
-                {isRegister && (
-                  <button
-                    type="button"
-                    className="action-link-btn"
-                    onClick={() => {
-                      const strong = generateStrongPassword();
-                      setAuthData({ ...authData, password: strong });
-                      setShowPassword(true);
-                      notifySuccess('Password Generated', 'Auto-filled strong credentials');
-                    }}
-                  >
-                    Suggest Strong Password
-                  </button>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {inlineToast && <span className="custom-inline-toast">{inlineToast}</span>}
+                  {isRegister && (
+                    <button
+                      type="button"
+                      className="action-link-btn"
+                      onClick={() => {
+                        const strong = generateStrongPassword();
+                        setAuthData({ ...authData, password: strong });
+                        setShowPassword(true);
+                        triggerInlineToast('✓ Strong Password Generated');
+                      }}
+                    >
+                      Suggest Strong Password
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="password-field-wrapper">
                 <input
@@ -426,13 +461,11 @@ export default function App() {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    // Eye slash icon
                     <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                       <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
                       <line x1="1" y1="1" x2="23" y2="23" />
                     </svg>
                   ) : (
-                    // Eye icon
                     <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                       <circle cx="12" cy="12" r="3" />
@@ -441,17 +474,20 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Password Strength Indicator for Registration */}
-              {isRegister && authData.password && (
-                <div className="strength-indicator">
-                  <div className="strength-track">
-                    <div
-                      className="strength-fill"
-                      style={{ width: `${regStrength.score}%`, backgroundColor: regStrength.color }}
-                    ></div>
-                  </div>
-                  <span className="strength-text" style={{ color: regStrength.color }}>
-                    {regStrength.label}
+              {/* Professional Dynamic Password Criteria Checklist */}
+              {isRegister && (
+                <div className="password-checklist-pills">
+                  <span className={`rule-pill ${ruleLength ? 'valid' : ''}`}>
+                    {ruleLength ? '✓' : '•'} 8+ Characters
+                  </span>
+                  <span className={`rule-pill ${ruleUpper ? 'valid' : ''}`}>
+                    {ruleUpper ? '✓' : '•'} Uppercase (A-Z)
+                  </span>
+                  <span className={`rule-pill ${ruleNumber ? 'valid' : ''}`}>
+                    {ruleNumber ? '✓' : '•'} Number (0-9)
+                  </span>
+                  <span className={`rule-pill ${ruleSymbol ? 'valid' : ''}`}>
+                    {ruleSymbol ? '✓' : '•'} Symbol (!@#)
                   </span>
                 </div>
               )}
@@ -524,6 +560,7 @@ export default function App() {
           </p>
         </div>
         <div className="header-user-info">
+          {inlineToast && <span className="custom-inline-toast">{inlineToast}</span>}
           <span className="health-status-pill">
             <span className="health-dot"></span>
             DB {systemHealth.database || 'Online'}
@@ -566,7 +603,7 @@ export default function App() {
       </nav>
 
       {/* ========================================================================= */}
-      {/* TAB 1: NOTES REPOSITORY (CRUD + PAGINATION + RBAC) */}
+      {/* TAB 1: NOTES REPOSITORY (CRUD + DATA TABLE / GRID + PAGINATION) */}
       {/* ========================================================================= */}
       {activeTab === 'notes' && (
         <div>
@@ -625,7 +662,7 @@ export default function App() {
             </form>
           </div>
 
-          {/* Records Display Panel */}
+          {/* Records Display Panel with Enterprise Controls */}
           <div className="academic-panel">
             <div className="panel-header-row">
               <div>
@@ -636,25 +673,66 @@ export default function App() {
                   Supported by index: {user.role === 'admin' ? '{ createdAt: -1 }' : '{ user: 1, createdAt: -1 }'}
                 </p>
               </div>
-              <div>
+
+              {/* Data Table Controls Bar */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {/* Search */}
                 <input
                   type="text"
                   className="field-input"
-                  style={{ width: '220px', padding: '6px 10px', fontSize: '13px' }}
+                  style={{ width: '180px', padding: '6px 10px', fontSize: '13px' }}
                   placeholder="Search notes..."
                   value={noteSearch}
                   onChange={(e) => setNoteSearch(e.target.value)}
                 />
+
+                {/* Sort Order Dropdown */}
+                <select
+                  className="field-select"
+                  style={{ width: '120px', padding: '6px 8px', fontSize: '12px' }}
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                >
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                  <option value="alpha">A-Z Title</option>
+                </select>
+
+                {/* View Mode Toggle */}
+                <div className="view-mode-toggle">
+                  <button
+                    className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                    onClick={() => setViewMode('grid')}
+                  >
+                    Cards
+                  </button>
+                  <button
+                    className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
+                    onClick={() => setViewMode('table')}
+                  >
+                    Table
+                  </button>
+                </div>
+
+                {/* Export CSV button */}
+                <button
+                  className="btn-gov btn-gov-secondary btn-gov-sm"
+                  title="Export notes to CSV file"
+                  onClick={exportNotesToCSV}
+                >
+                  Export CSV
+                </button>
               </div>
             </div>
 
-            {filteredNotes.length === 0 ? (
+            {processedNotes.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', padding: '24px 0', textAlign: 'left' }}>
                 No records match current parameters.
               </p>
-            ) : (
+            ) : viewMode === 'grid' ? (
+              /* Grid Card View */
               <div className="notes-container-grid">
-                {filteredNotes.map((note) => (
+                {processedNotes.map((note) => (
                   <div key={note._id} className="single-note-card">
                     <div>
                       <h4 className="note-card-title">{note.title}</h4>
@@ -685,6 +763,50 @@ export default function App() {
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : (
+              /* Enterprise Data Table View */
+              <div style={{ overflowX: 'auto' }}>
+                <table className="academic-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Content Excerpt</th>
+                      <th>Author</th>
+                      <th>Date</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {processedNotes.map((note) => (
+                      <tr key={note._id}>
+                        <td>
+                          <strong>{note.title}</strong>
+                        </td>
+                        <td style={{ color: 'var(--text-muted)', maxWidth: '280px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {note.content}
+                        </td>
+                        <td>{note.user ? note.user.name : 'You'}</td>
+                        <td>{new Date(note.createdAt).toLocaleDateString()}</td>
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <button
+                            className="btn-gov btn-gov-secondary btn-gov-sm"
+                            style={{ marginRight: '6px' }}
+                            onClick={() => setEditingNote(note)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn-gov btn-gov-danger btn-gov-sm"
+                            onClick={() => handleDeleteNote(note._id)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
 
@@ -853,7 +975,7 @@ export default function App() {
                   User: {lookupResult.name} &lt;{lookupResult.email}&gt;
                 </h4>
                 <p style={{ color: 'var(--text-muted)', margin: '4px 0 10px 0' }}>
-                  Joined Posts: <strong>{lookupResult.posts ? lookupResult.posts.length : 0}</strong>
+                  Total Joined Posts: <strong>{lookupResult.posts ? lookupResult.posts.length : 0}</strong>
                 </p>
                 {lookupResult.posts && lookupResult.posts.length > 0 ? (
                   lookupResult.posts.map((p) => (
@@ -977,7 +1099,7 @@ export default function App() {
                         const strong = generateStrongPassword();
                         setNewAdminUser({ ...newAdminUser, password: strong });
                         setShowAdminPassword(true);
-                        notifySuccess('Generated', 'Strong password populated');
+                        triggerInlineToast('✓ Password Generated');
                       }}
                     >
                       Suggest

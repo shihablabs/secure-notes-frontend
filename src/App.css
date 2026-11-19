@@ -247,7 +247,52 @@
   color: var(--primary-navy);
 }
 
-/* Generate Password Action Link */
+/* Custom Inline Toast Notification (Side fade-in pill) */
+.custom-inline-toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Password Requirements Checklist Pills */
+.password-checklist-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.rule-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background-color: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.rule-pill.valid {
+  background-color: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+/* Action Link Button */
 .action-link-btn {
   background: none;
   border: none;
@@ -263,47 +308,31 @@
   color: var(--primary-hover);
 }
 
-/* Password Strength Indicator */
-.strength-indicator {
-  margin-top: 6px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.strength-track {
-  height: 4px;
-  flex: 1;
-  background-color: #e2e8f0;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.strength-fill {
-  height: 100%;
-  transition: width 0.3s ease, background-color 0.3s ease;
-}
-
-.strength-text {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-/* Quick Fill Demo Banner */
-.demo-fill-box {
-  background-color: #f8fafc;
-  border: 1px dashed #cbd5e1;
+/* Table View vs Grid View Switcher */
+.view-mode-toggle {
+  display: inline-flex;
+  background: #f1f5f9;
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  margin-bottom: 16px;
+  padding: 2px;
+}
+
+.view-btn {
+  background: none;
+  border: none;
+  padding: 4px 10px;
   font-size: 12px;
+  font-weight: 600;
   color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+
+.view-btn.active {
+  background: #ffffff;
+  color: var(--primary-navy);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 /* Buttons */
