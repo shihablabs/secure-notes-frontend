@@ -1,16 +1,39 @@
-# React + Vite
+# Secure Note-Taking Application — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A clean, template-free, responsive frontend interface built with **React (Vite)** to demonstrate integration with the Secure Note-Taking REST API.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **Authentication & RBAC:**
+  - Login & Register forms with role selection (`user` / `admin`) and interests configuration.
+  - JWT token management via `localStorage` with automatic header injection.
+- **Notes Module:**
+  - Full CRUD operations (Create, Read, Update, Delete).
+  - List pagination (previous, next, page indicators).
+  - Dynamic RBAC view: regular users see their own notes, while admins can view everyone's notes with author metadata.
+- **Aggregation Scenario 1 View:**
+  - Interactive view showing users grouped by interests using MongoDB aggregation.
+- **Aggregation Scenario 2 View:**
+  - Public posts feed and interactive inspector for the `$lookup` aggregation to retrieve all posts of a specific user.
+- **Admin Panel:**
+  - Accessible only to admin accounts for managing users with pagination.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## Local Setup
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+```bash
+# Clone the repository
+git clone https://github.com/shihablabs/secure-notes-frontend.git
+cd secure-notes-frontend
+
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+```
+
+App runs on `http://localhost:5173`.
