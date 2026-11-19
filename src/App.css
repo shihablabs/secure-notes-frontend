@@ -1,44 +1,35 @@
-/* UK Academic Minimalist Theme (Oxford / Cambridge / Gov.UK style) */
+/* UK Academic Clean & Dignified Portal Theme (Oxford / Cambridge / Gov.UK style) */
 :root {
-  --navy-primary: #002147;       /* Classic Oxford / British Academic Navy */
-  --navy-hover: #083b75;
-  --crimson-admin: #7f1d1d;      /* Dignified Crimson for Admin */
-  --blue-user: #002147;
-  --text-main: #111827;          /* High-contrast charcoal text */
-  --text-muted: #4b5563;         /* Subtle gray text */
-  --bg-page: #f9fafb;            /* Clean academic off-white */
-  --bg-surface: #ffffff;
-  --border-color: #d1d5db;       /* Crisp 1px borders */
-  --border-subtle: #e5e7eb;
+  --primary-navy: #002147;       /* Oxford Blue */
+  --primary-hover: #0a3161;
+  --text-dark: #0f172a;          /* Clean slate dark */
+  --text-body: #334155;          /* Muted body text */
+  --text-muted: #64748b;         /* Subtle secondary text */
+  --bg-page: #f8fafc;            /* Clean light slate background */
+  --bg-surface: #ffffff;         /* Pure white cards */
+  --border-light: #e2e8f0;       /* 1px subtle divider */
+  --border-focus: #002147;
+  --admin-accent: #991b1b;       /* Crimson for admin role */
+  --user-accent: #0369a1;        /* Clean sky-navy for user role */
   --success: #15803d;
-  --danger: #b91c1c;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  background-color: var(--bg-page);
-  color: var(--text-main);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
+  --danger: #dc2626;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
 }
 
 .container {
-  max-width: 1040px;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 32px 20px;
+  padding: 32px 24px;
+  width: 100%;
 }
 
 /* Institutional Header */
-.academic-header {
-  border-bottom: 2px solid var(--navy-primary);
-  padding-bottom: 18px;
-  margin-bottom: 28px;
+.portal-header {
+  border-bottom: 2px solid var(--primary-navy);
+  padding-bottom: 20px;
+  margin-bottom: 24px;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -46,332 +37,321 @@ body {
   gap: 16px;
 }
 
-.site-title {
-  font-size: 26px;
+.portal-title {
+  font-size: 24px;
   font-weight: 700;
-  color: var(--navy-primary);
-  letter-spacing: -0.5px;
+  color: var(--primary-navy);
+  letter-spacing: -0.3px;
 }
 
-.site-subtitle {
+.portal-subtitle {
   font-size: 13px;
   color: var(--text-muted);
   margin-top: 2px;
 }
 
-.user-status-bar {
+.header-user-info {
   display: flex;
   align-items: center;
   gap: 12px;
   font-size: 13px;
 }
 
-.system-pill {
+.health-status-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   font-weight: 600;
   color: var(--success);
   background-color: #f0fdf4;
   border: 1px solid #bbf7d0;
   padding: 3px 8px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.system-dot {
+.health-dot {
   width: 6px;
   height: 6px;
   background-color: var(--success);
   border-radius: 50%;
 }
 
-.role-badge {
+.badge-role {
   font-size: 11px;
   font-weight: 700;
   padding: 3px 8px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
 
-.role-badge.admin {
+.badge-role.admin {
   background-color: #fee2e2;
-  color: var(--crimson-admin);
-  border: 1px solid #fca5a5;
+  color: var(--admin-accent);
+  border: 1px solid #fecaca;
 }
 
-.role-badge.user {
+.badge-role.user {
   background-color: #e0f2fe;
-  color: var(--navy-primary);
+  color: var(--user-accent);
   border: 1px solid #bae6fd;
 }
 
-/* Academic Tab Navigation */
-.nav-tabs {
+/* Clean Underline Navigation Tabs (Gov.UK / Modern Academic) */
+.portal-tabs {
   display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--border-color);
+  gap: 8px;
+  border-bottom: 1px solid var(--border-light);
   margin-bottom: 24px;
-  flex-wrap: wrap;
+  overflow-x: auto;
 }
 
-.nav-tab-item {
+.tab-link {
   background: none;
-  border: 1px solid transparent;
-  border-bottom: none;
-  padding: 10px 18px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 16px;
   font-size: 14px;
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;
-  border-radius: 4px 4px 0 0;
+  white-space: nowrap;
   transition: all 0.15s ease;
-}
-
-.nav-tab-item:hover {
-  color: var(--navy-primary);
-  background-color: #f3f4f6;
-}
-
-.nav-tab-item.active {
-  color: var(--navy-primary);
-  background-color: var(--bg-surface);
-  border-color: var(--border-color);
-  border-top: 3px solid var(--navy-primary);
   margin-bottom: -1px;
-  padding-bottom: 11px;
 }
 
-/* Formal Panels & Cards */
-.panel {
+.tab-link:hover {
+  color: var(--primary-navy);
+}
+
+.tab-link.active {
+  color: var(--primary-navy);
+  border-bottom-color: var(--primary-navy);
+}
+
+/* Academic Panels & Cards (Zero clunky side-borders) */
+.academic-panel {
   background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  padding: 22px;
-  margin-bottom: 22px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-subtle);
+  text-align: left;
 }
 
-.panel-header {
-  border-bottom: 1px solid var(--border-subtle);
-  padding-bottom: 12px;
-  margin-bottom: 16px;
+.panel-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 14px;
+  margin-bottom: 18px;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
 }
 
-.panel-title {
+.panel-heading {
   font-size: 18px;
   font-weight: 700;
-  color: var(--navy-primary);
+  color: var(--text-dark);
 }
 
-.panel-desc {
+.panel-subtext {
   font-size: 13px;
   color: var(--text-muted);
   margin-top: 2px;
 }
 
-/* Clean Academic Forms */
-.form-field {
-  margin-bottom: 14px;
+/* Left-Aligned, Crisp Academic Forms */
+.field-group {
+  margin-bottom: 16px;
+  text-align: left;
 }
 
-.form-label {
+.field-label {
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-main);
-  margin-bottom: 4px;
+  color: var(--text-dark);
+  margin-bottom: 6px;
+  text-align: left;
 }
 
-.form-input, .form-textarea, .form-select {
+.field-input, .field-textarea, .field-select {
   width: 100%;
   padding: 9px 12px;
   font-size: 14px;
-  border: 1px solid var(--border-color);
-  border-radius: 3px;
+  color: var(--text-dark);
   background-color: #ffffff;
-  color: var(--text-main);
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-sm);
   outline: none;
   font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  text-align: left;
 }
 
-.form-input:focus, .form-textarea:focus, .form-select:focus {
-  border-color: var(--navy-primary);
-  box-shadow: 0 0 0 1px var(--navy-primary);
+.field-input:focus, .field-textarea:focus, .field-select:focus {
+  border-color: var(--primary-navy);
+  box-shadow: 0 0 0 2px rgba(0, 33, 71, 0.12);
 }
 
-.form-textarea {
-  min-height: 85px;
+.field-textarea {
+  min-height: 90px;
   resize: vertical;
 }
 
-.form-help {
+.field-hint {
   font-size: 12px;
   color: var(--text-muted);
   margin-top: 4px;
+  text-align: left;
 }
 
-/* Academic Buttons */
-.btn {
+/* Buttons */
+.btn-gov {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 18px;
+  padding: 8px 16px;
   font-size: 13px;
   font-weight: 600;
-  border-radius: 3px;
-  cursor: pointer;
+  border-radius: var(--radius-sm);
   border: 1px solid transparent;
-  transition: all 0.15s ease;
+  cursor: pointer;
   font-family: inherit;
-  text-decoration: none;
+  transition: all 0.15s ease;
 }
 
-.btn-primary {
-  background-color: var(--navy-primary);
+.btn-gov-primary {
+  background-color: var(--primary-navy);
   color: #ffffff;
-  border-color: var(--navy-primary);
 }
 
-.btn-primary:hover {
-  background-color: var(--navy-hover);
+.btn-gov-primary:hover {
+  background-color: var(--primary-hover);
 }
 
-.btn-outline {
-  background-color: transparent;
-  color: var(--navy-primary);
-  border-color: var(--navy-primary);
+.btn-gov-secondary {
+  background-color: #f1f5f9;
+  color: var(--text-dark);
+  border-color: #cbd5e1;
 }
 
-.btn-outline:hover {
-  background-color: #f0f4f8;
+.btn-gov-secondary:hover {
+  background-color: #e2e8f0;
 }
 
-.btn-secondary {
-  background-color: #f3f4f6;
-  color: var(--text-main);
-  border-color: var(--border-color);
-}
-
-.btn-secondary:hover {
-  background-color: #e5e7eb;
-}
-
-.btn-danger {
+.btn-gov-danger {
   background-color: #ffffff;
   color: var(--danger);
   border-color: #fca5a5;
 }
 
-.btn-danger:hover {
+.btn-gov-danger:hover {
   background-color: #fef2f2;
 }
 
-.btn-sm {
-  padding: 4px 10px;
+.btn-gov-sm {
+  padding: 5px 12px;
   font-size: 12px;
 }
 
-/* Notes Grid (Academic Paper Style) */
-.notes-grid {
+/* Notes Grid (Smooth, Left-Aligned Paper Cards) */
+.notes-container-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 18px;
 }
 
-.note-card {
+.single-note-card {
   background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-top: 3px solid var(--navy-primary);
-  border-radius: 3px;
-  padding: 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 18px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  text-align: left;
+  border-top: 3px solid var(--primary-navy);
 }
 
-.note-heading {
+.note-card-title {
   font-size: 16px;
   font-weight: 700;
-  color: var(--text-main);
+  color: var(--text-dark);
   margin-bottom: 6px;
+  text-align: left;
 }
 
-.note-body {
+.note-card-text {
   font-size: 14px;
-  color: #374151;
+  color: var(--text-body);
   white-space: pre-wrap;
   margin-bottom: 14px;
+  text-align: left;
 }
 
-.note-footer {
-  border-top: 1px solid var(--border-subtle);
-  padding-top: 10px;
-  font-size: 12px;
-  color: var(--text-muted);
+.note-card-bottom {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
-/* Academic Table */
-.data-table {
+/* Formal Academic Data Table */
+.academic-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-}
-
-.data-table th {
-  background-color: #f8fafc;
-  color: var(--navy-primary);
   text-align: left;
-  padding: 10px 12px;
+}
+
+.academic-table th {
+  background-color: #f8fafc;
+  color: var(--primary-navy);
   font-weight: 700;
-  border-bottom: 2px solid var(--border-color);
-  border-top: 1px solid var(--border-color);
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--border-light);
+  text-align: left;
 }
 
-.data-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border-subtle);
+.academic-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
 }
 
-.data-table tr:hover {
-  background-color: #f9fafb;
-}
-
-/* Search Bar */
-.search-wrapper {
-  margin-bottom: 16px;
-  display: flex;
-  gap: 8px;
+.academic-table tr:hover {
+  background-color: #fcfcfc;
 }
 
 /* Pagination Bar */
-.pagination-bar {
+.academic-pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
-  margin-top: 22px;
+  gap: 14px;
+  margin-top: 24px;
   font-size: 13px;
 }
 
-/* Tag / Badge */
-.tag-academic {
+/* Metadata Tag */
+.meta-tag {
   display: inline-block;
   background-color: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  color: var(--navy-primary);
+  border: 1px solid #e2e8f0;
+  color: var(--primary-navy);
   padding: 2px 8px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 600;
   margin: 2px 4px 2px 0;

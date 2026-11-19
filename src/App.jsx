@@ -18,7 +18,7 @@ const notifySuccess = (title, text = '') => {
 const notifyError = (text) => {
   Swal.fire({
     icon: 'error',
-    title: 'Error',
+    title: 'Action Failed',
     text,
     confirmButtonColor: '#002147'
   });
@@ -30,9 +30,9 @@ const confirmDialog = async (title, text = '') => {
     text,
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: '#b91c1c',
-    cancelButtonColor: '#4b5563',
-    confirmButtonText: 'Confirm Delete'
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: 'Confirm'
   });
   return result.isConfirmed;
 };
@@ -183,7 +183,7 @@ export default function App() {
         })
       });
       setEditingNote(null);
-      notifySuccess('Note Updated', 'Modifications recorded');
+      notifySuccess('Note Updated', 'Modifications saved');
       fetchNotes(notePage);
     } catch (err) {
       notifyError(err.message);
@@ -191,7 +191,7 @@ export default function App() {
   };
 
   const handleDeleteNote = async (id) => {
-    const confirmed = await confirmDialog('Delete Record', 'This action will permanently remove this note.');
+    const confirmed = await confirmDialog('Delete Record', 'This action will permanently delete this note.');
     if (!confirmed) return;
 
     try {
@@ -295,7 +295,7 @@ export default function App() {
   };
 
   const handleDeleteAdminUser = async (id) => {
-    const confirmed = await confirmDialog('Remove Member', 'Are you certain you wish to delete this user?');
+    const confirmed = await confirmDialog('Remove Member', 'Are you certain you wish to remove this user?');
     if (!confirmed) return;
 
     try {
@@ -310,23 +310,23 @@ export default function App() {
   // --- IF NOT LOGGED IN: ACADEMIC AUTHENTICATION SCREEN ---
   if (!user) {
     return (
-      <div className="container" style={{ maxWidth: '440px', marginTop: '50px' }}>
-        <div className="panel">
-          <div className="panel-header">
+      <div className="container" style={{ maxWidth: '440px', marginTop: '60px' }}>
+        <div className="academic-panel">
+          <div className="panel-header-row">
             <div>
-              <h2 className="panel-title">{isRegister ? 'New Account Registration' : 'Institutional Sign In'}</h2>
-              <p className="panel-desc">Secure Note-Taking Platform & RBAC Repository</p>
+              <h2 className="panel-heading">{isRegister ? 'New Account Registration' : 'Institutional Sign In'}</h2>
+              <p className="panel-subtext">Secure Note-Taking Platform with Role-Based Access Control</p>
             </div>
           </div>
 
           <form onSubmit={handleAuthSubmit}>
             {isRegister && (
-              <div className="form-field">
-                <label className="form-label">Full Legal Name</label>
+              <div className="field-group">
+                <label className="field-label">Full Name</label>
                 <input
                   type="text"
                   required
-                  className="form-input"
+                  className="field-input"
                   value={authData.name}
                   onChange={(e) => setAuthData({ ...authData, name: e.target.value })}
                   placeholder="e.g. Shihab Candidate"
@@ -334,24 +334,24 @@ export default function App() {
               </div>
             )}
 
-            <div className="form-field">
-              <label className="form-label">Email Address</label>
+            <div className="field-group">
+              <label className="field-label">Email Address</label>
               <input
                 type="email"
                 required
-                className="form-input"
+                className="field-input"
                 value={authData.email}
                 onChange={(e) => setAuthData({ ...authData, email: e.target.value })}
-                placeholder="name@institution.ac.uk"
+                placeholder="name@example.com"
               />
             </div>
 
-            <div className="form-field">
-              <label className="form-label">Password</label>
+            <div className="field-group">
+              <label className="field-label">Password</label>
               <input
                 type="password"
                 required
-                className="form-input"
+                className="field-input"
                 value={authData.password}
                 onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
                 placeholder="••••••••"
@@ -360,52 +360,52 @@ export default function App() {
 
             {isRegister && (
               <>
-                <div className="form-field">
-                  <label className="form-label">Account Role Assignment</label>
+                <div className="field-group">
+                  <label className="field-label">Account Role Assignment</label>
                   <select
-                    className="form-select"
+                    className="field-select"
                     value={authData.role}
                     onChange={(e) => setAuthData({ ...authData, role: e.target.value })}
                   >
-                    <option value="user">User (Standard permissions)</option>
-                    <option value="admin">Admin (System supervisor permissions)</option>
+                    <option value="user">User (Standard account)</option>
+                    <option value="admin">Admin (System supervisor)</option>
                   </select>
                 </div>
 
-                <div className="form-field">
-                  <label className="form-label">Research / Personal Interests</label>
+                <div className="field-group">
+                  <label className="field-label">Research / Personal Interests</label>
                   <input
                     type="text"
-                    className="form-input"
+                    className="field-input"
                     value={authData.interests}
                     onChange={(e) => setAuthData({ ...authData, interests: e.target.value })}
-                    placeholder="chess, reading, computer science"
+                    placeholder="chess, reading, tech"
                   />
-                  <p className="form-help">Comma-delimited entries utilized in MongoDB Scenario 1 aggregation.</p>
+                  <p className="field-hint">Comma-separated entries for MongoDB Scenario 1 aggregation.</p>
                 </div>
               </>
             )}
 
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>
-              {isRegister ? 'Enroll Account' : 'Authenticate Credentials'}
+            <button type="submit" className="btn-gov btn-gov-primary" style={{ width: '100%', marginTop: '8px', padding: '10px' }}>
+              {isRegister ? 'Complete Registration' : 'Sign In'}
             </button>
           </form>
 
-          <div style={{ marginTop: '18px', textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)' }}>
-            {isRegister ? 'Already possess credentials?' : 'Require an account?'}{' '}
+          <div style={{ marginTop: '20px', textAlign: 'left', fontSize: '13px', color: 'var(--text-muted)' }}>
+            {isRegister ? 'Already registered?' : 'Need an account?'}{' '}
             <button
               type="button"
               onClick={() => setIsRegister(!isRegister)}
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--navy-primary)',
+                color: 'var(--primary-navy)',
                 fontWeight: 700,
-                textDecoration: 'underline',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                textDecoration: 'underline'
               }}
             >
-              {isRegister ? 'Proceed to Sign In' : 'Register Here'}
+              {isRegister ? 'Sign in here' : 'Register here'}
             </button>
           </div>
         </div>
@@ -417,48 +417,48 @@ export default function App() {
   return (
     <div className="container">
       {/* Top Academic Header */}
-      <header className="academic-header">
+      <header className="portal-header">
         <div>
-          <h1 className="site-title">Secure Note-Taking Portal</h1>
-          <p className="site-subtitle">
-            Authenticated Member: <strong>{user.name}</strong> &lt;{user.email}&gt;
+          <h1 className="portal-title">Secure Note-Taking Portal</h1>
+          <p className="portal-subtitle">
+            Authenticated: <strong>{user.name}</strong> &lt;{user.email}&gt;
           </p>
         </div>
-        <div className="user-status-bar">
-          <span className="system-pill">
-            <span className="system-dot"></span>
+        <div className="header-user-info">
+          <span className="health-status-pill">
+            <span className="health-dot"></span>
             DB {systemHealth.database || 'Online'}
           </span>
-          <span className={`role-badge ${user.role}`}>{user.role}</span>
-          <button className="btn btn-outline btn-sm" onClick={handleLogout}>
+          <span className={`badge-role ${user.role}`}>{user.role}</span>
+          <button className="btn-gov btn-gov-secondary btn-gov-sm" onClick={handleLogout}>
             Sign Out
           </button>
         </div>
       </header>
 
-      {/* Academic Navigation Tabs */}
-      <nav className="nav-tabs">
+      {/* Clean Horizontal Tabs */}
+      <nav className="portal-tabs">
         <button
-          className={`nav-tab-item ${activeTab === 'notes' ? 'active' : ''}`}
+          className={`tab-link ${activeTab === 'notes' ? 'active' : ''}`}
           onClick={() => setActiveTab('notes')}
         >
           Notes Repository {user.role === 'admin' ? '(Admin View)' : '(Personal)'}
         </button>
         <button
-          className={`nav-tab-item ${activeTab === 'interests' ? 'active' : ''}`}
+          className={`tab-link ${activeTab === 'interests' ? 'active' : ''}`}
           onClick={() => setActiveTab('interests')}
         >
           Scenario 1: Group by Interests
         </button>
         <button
-          className={`nav-tab-item ${activeTab === 'posts' ? 'active' : ''}`}
+          className={`tab-link ${activeTab === 'posts' ? 'active' : ''}`}
           onClick={() => setActiveTab('posts')}
         >
           Scenario 2: User Posts ($lookup)
         </button>
         {user.role === 'admin' && (
           <button
-            className={`nav-tab-item ${activeTab === 'admin' ? 'active' : ''}`}
+            className={`tab-link ${activeTab === 'admin' ? 'active' : ''}`}
             onClick={() => setActiveTab('admin')}
           >
             Administration Panel
@@ -472,20 +472,21 @@ export default function App() {
       {activeTab === 'notes' && (
         <div>
           {/* Note Composition Panel */}
-          <div className="panel">
-            <div className="panel-header">
-              <h3 className="panel-title">{editingNote ? 'Modify Note Record' : 'Compose New Note'}</h3>
+          <div className="academic-panel">
+            <div className="panel-header-row">
+              <h3 className="panel-heading">{editingNote ? 'Modify Note Record' : 'Compose New Note'}</h3>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                Length: {(editingNote ? editingNote.content : newNote.content).length} chars
+                {(editingNote ? editingNote.content : newNote.content).length} characters
               </span>
             </div>
             <form onSubmit={editingNote ? handleUpdateNote : handleCreateNote}>
-              <div className="form-field">
+              <div className="field-group">
+                <label className="field-label">Record Title</label>
                 <input
                   type="text"
                   required
-                  className="form-input"
-                  placeholder="Record Title"
+                  className="field-input"
+                  placeholder="Enter title..."
                   value={editingNote ? editingNote.title : newNote.title}
                   onChange={(e) =>
                     editingNote
@@ -494,11 +495,12 @@ export default function App() {
                   }
                 />
               </div>
-              <div className="form-field">
+              <div className="field-group">
+                <label className="field-label">Content Body</label>
                 <textarea
                   required
-                  className="form-textarea"
-                  placeholder="Type note contents..."
+                  className="field-textarea"
+                  placeholder="Write note contents..."
                   value={editingNote ? editingNote.content : newNote.content}
                   onChange={(e) =>
                     editingNote
@@ -508,13 +510,13 @@ export default function App() {
                 />
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button type="submit" className="btn btn-primary">
-                  {editingNote ? 'Update Record' : 'Save Record'}
+                <button type="submit" className="btn-gov btn-gov-primary">
+                  {editingNote ? 'Update Note' : 'Save Note'}
                 </button>
                 {editingNote && (
                   <button
                     type="button"
-                    className="btn btn-secondary"
+                    className="btn-gov btn-gov-secondary"
                     onClick={() => setEditingNote(null)}
                   >
                     Cancel
@@ -525,22 +527,22 @@ export default function App() {
           </div>
 
           {/* Records Display Panel */}
-          <div className="panel">
-            <div className="panel-header">
+          <div className="academic-panel">
+            <div className="panel-header-row">
               <div>
-                <h3 className="panel-title">
-                  {user.role === 'admin' ? 'All System Notes (Administrator View)' : 'Personal Notes Collection'}
+                <h3 className="panel-heading">
+                  {user.role === 'admin' ? 'All System Notes (Administrator View)' : 'Your Notes Collection'}
                 </h3>
-                <p className="panel-desc">
+                <p className="panel-subtext">
                   Supported by index: {user.role === 'admin' ? '{ createdAt: -1 }' : '{ user: 1, createdAt: -1 }'}
                 </p>
               </div>
-              <div className="search-wrapper" style={{ margin: 0 }}>
+              <div>
                 <input
                   type="text"
-                  className="form-input"
+                  className="field-input"
                   style={{ width: '220px', padding: '6px 10px', fontSize: '13px' }}
-                  placeholder="Filter records..."
+                  placeholder="Search notes..."
                   value={noteSearch}
                   onChange={(e) => setNoteSearch(e.target.value)}
                 />
@@ -548,33 +550,33 @@ export default function App() {
             </div>
 
             {filteredNotes.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', padding: '24px 0', textAlign: 'center' }}>
+              <p style={{ color: 'var(--text-muted)', padding: '24px 0', textAlign: 'left' }}>
                 No records match current parameters.
               </p>
             ) : (
-              <div className="notes-grid">
+              <div className="notes-container-grid">
                 {filteredNotes.map((note) => (
-                  <div key={note._id} className="note-card">
+                  <div key={note._id} className="single-note-card">
                     <div>
-                      <h4 className="note-heading">{note.title}</h4>
-                      <p className="note-body">{note.content}</p>
+                      <h4 className="note-card-title">{note.title}</h4>
+                      <p className="note-card-text">{note.content}</p>
                     </div>
                     <div>
-                      <div className="note-footer">
+                      <div className="note-card-bottom">
                         <span>
                           {user.role === 'admin' && note.user
-                            ? `By: ${note.user.name}`
+                            ? `Author: ${note.user.name}`
                             : new Date(note.createdAt).toLocaleDateString()}
                         </span>
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button
-                            className="btn btn-secondary btn-sm"
+                            className="btn-gov btn-gov-secondary btn-gov-sm"
                             onClick={() => setEditingNote(note)}
                           >
                             Edit
                           </button>
                           <button
-                            className="btn btn-danger btn-sm"
+                            className="btn-gov btn-gov-danger btn-gov-sm"
                             onClick={() => handleDeleteNote(note._id)}
                           >
                             Delete
@@ -589,9 +591,9 @@ export default function App() {
 
             {/* Pagination Controls */}
             {notePages > 1 && (
-              <div className="pagination-bar">
+              <div className="academic-pagination">
                 <button
-                  className="btn btn-secondary btn-sm"
+                  className="btn-gov btn-gov-secondary btn-gov-sm"
                   disabled={notePage <= 1}
                   onClick={() => setNotePage((p) => Math.max(p - 1, 1))}
                 >
@@ -601,7 +603,7 @@ export default function App() {
                   Page <strong>{notePage}</strong> of <strong>{notePages}</strong>
                 </span>
                 <button
-                  className="btn btn-secondary btn-sm"
+                  className="btn-gov btn-gov-secondary btn-gov-sm"
                   disabled={notePage >= notePages}
                   onClick={() => setNotePage((p) => Math.min(p + 1, notePages))}
                 >
@@ -617,40 +619,40 @@ export default function App() {
       {/* TAB 2: AGGREGATION SCENARIO 1 (GROUP BY INTERESTS) */}
       {/* ========================================================================= */}
       {activeTab === 'interests' && (
-        <div className="panel">
-          <div className="panel-header">
+        <div className="academic-panel">
+          <div className="panel-header-row">
             <div>
-              <h3 className="panel-title">Aggregation Scenario 1: Group by Interests</h3>
-              <p className="panel-desc">
-                Requirement: Executed via a single <code>collection.aggregate()</code> call ($unwind, $group, $sort).
+              <h3 className="panel-heading">Aggregation Scenario 1: Group by Interests</h3>
+              <p className="panel-subtext">
+                Constraint: Single <code>collection.aggregate()</code> call using $unwind, $group, and $sort.
               </p>
             </div>
-            <button className="btn btn-outline btn-sm" onClick={fetchInterests}>
-              Re-run Aggregation
+            <button className="btn-gov btn-gov-secondary btn-gov-sm" onClick={fetchInterests}>
+              Refresh Aggregation
             </button>
           </div>
 
           {loadingInterests ? (
-            <p style={{ padding: '24px 0', color: 'var(--text-muted)' }}>Executing MongoDB aggregation pipeline...</p>
+            <p style={{ padding: '20px 0', color: 'var(--text-muted)' }}>Executing MongoDB aggregation pipeline...</p>
           ) : interestsData.length === 0 ? (
-            <p style={{ padding: '24px 0', color: 'var(--text-muted)' }}>No interests data available.</p>
+            <p style={{ padding: '20px 0', color: 'var(--text-muted)' }}>No interests data available.</p>
           ) : (
             <div>
               {interestsData.map((group) => (
                 <div
                   key={group.interest}
                   style={{
-                    borderBottom: '1px solid var(--border-subtle)',
-                    padding: '14px 0'
+                    borderBottom: '1px solid var(--border-light)',
+                    padding: '12px 0'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span className="tag-academic">{group.interest}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="meta-tag">{group.interest}</span>
                     <strong style={{ fontSize: '13px' }}>
-                      {group.totalUsers} {group.totalUsers === 1 ? 'Individual' : 'Individuals'}
+                      {group.totalUsers} {group.totalUsers === 1 ? 'User' : 'Users'}
                     </strong>
                   </div>
-                  <ul style={{ paddingLeft: '22px', marginTop: '6px', fontSize: '13px' }}>
+                  <ul style={{ paddingLeft: '20px', marginTop: '6px', fontSize: '13px', textAlign: 'left' }}>
                     {group.users.map((u) => (
                       <li key={u._id} style={{ margin: '3px 0' }}>
                         {u.name} — <span style={{ color: 'var(--text-muted)' }}>{u.email}</span> (
@@ -671,44 +673,48 @@ export default function App() {
       {activeTab === 'posts' && (
         <div>
           {/* Post Creation */}
-          <div className="panel">
-            <div className="panel-header">
-              <h3 className="panel-title">Publish Public Document / Post</h3>
-              <p className="panel-desc">Stored in Posts collection; visible across all user accounts.</p>
+          <div className="academic-panel">
+            <div className="panel-header-row">
+              <div>
+                <h3 className="panel-heading">Publish Public Post</h3>
+                <p className="panel-subtext">Stored in Posts collection; visible to everyone.</p>
+              </div>
             </div>
             <form onSubmit={handleCreatePost}>
-              <div className="form-field">
+              <div className="field-group">
+                <label className="field-label">Post Title</label>
                 <input
                   type="text"
                   required
-                  className="form-input"
-                  placeholder="Post Title"
+                  className="field-input"
+                  placeholder="Enter post title..."
                   value={newPost.title}
                   onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
                 />
               </div>
-              <div className="form-field">
+              <div className="field-group">
+                <label className="field-label">Post Content</label>
                 <textarea
                   required
-                  className="form-textarea"
-                  placeholder="Body content..."
+                  className="field-textarea"
+                  placeholder="Write post content..."
                   value={newPost.content}
                   onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
                 />
               </div>
-              <button type="submit" className="btn btn-primary">
+              <button type="submit" className="btn-gov btn-gov-primary">
                 Publish Post
               </button>
             </form>
           </div>
 
           {/* Interactive $lookup Inspection */}
-          <div className="panel" style={{ borderLeft: '4px solid var(--navy-primary)' }}>
-            <div className="panel-header">
+          <div className="academic-panel" style={{ borderLeft: '4px solid var(--primary-navy)' }}>
+            <div className="panel-header-row">
               <div>
-                <h3 className="panel-title">Scenario 2: User Posts ($lookup Stage)</h3>
-                <p className="panel-desc">
-                  Constraint: Single pipeline with <code>$lookup</code> stage. Supported by index{' '}
+                <h3 className="panel-heading">Scenario 2: User Posts ($lookup Stage)</h3>
+                <p className="panel-subtext">
+                  Constraint: Single aggregation pipeline with <code>$lookup</code> stage. Supported by index{' '}
                   <code>postSchema.index({'{ user: 1 }'})</code>.
                 </p>
               </div>
@@ -716,13 +722,13 @@ export default function App() {
             <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
               <input
                 type="text"
-                className="form-input"
-                placeholder="Paste Target User ObjectId or click 'Lookup' below"
+                className="field-input"
+                placeholder="Paste Target User ObjectId or click button below"
                 value={lookupUserId}
                 onChange={(e) => setLookupUserId(e.target.value)}
               />
-              <button className="btn btn-primary" onClick={() => handleLookup()}>
-                Execute $lookup
+              <button className="btn-gov btn-gov-primary" onClick={() => handleLookup()}>
+                Run $lookup
               </button>
             </div>
 
@@ -730,17 +736,18 @@ export default function App() {
               <div
                 style={{
                   background: '#f8fafc',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '3px',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: 'var(--radius-sm)',
                   padding: '14px',
-                  fontSize: '13px'
+                  fontSize: '13px',
+                  textAlign: 'left'
                 }}
               >
-                <h4 style={{ color: 'var(--navy-primary)' }}>
-                  Aggregation Target: {lookupResult.name} &lt;{lookupResult.email}&gt;
+                <h4 style={{ color: 'var(--primary-navy)' }}>
+                  User: {lookupResult.name} &lt;{lookupResult.email}&gt;
                 </h4>
                 <p style={{ color: 'var(--text-muted)', margin: '4px 0 10px 0' }}>
-                  Joined Posts via $lookup: <strong>{lookupResult.posts ? lookupResult.posts.length : 0}</strong>
+                  Total Joined Posts: <strong>{lookupResult.posts ? lookupResult.posts.length : 0}</strong>
                 </p>
                 {lookupResult.posts && lookupResult.posts.length > 0 ? (
                   lookupResult.posts.map((p) => (
@@ -748,41 +755,42 @@ export default function App() {
                       key={p._id}
                       style={{
                         background: '#ffffff',
-                        border: '1px solid var(--border-subtle)',
+                        border: '1px solid var(--border-light)',
                         padding: '10px 12px',
                         marginBottom: '8px',
-                        borderRadius: '2px'
+                        borderRadius: 'var(--radius-sm)'
                       }}
                     >
                       <strong>{p.title}</strong>
-                      <p style={{ fontSize: '13px', color: '#4b5563', marginTop: '2px' }}>{p.content}</p>
+                      <p style={{ fontSize: '13px', color: 'var(--text-body)', marginTop: '2px' }}>{p.content}</p>
                     </div>
                   ))
                 ) : (
-                  <p style={{ color: 'var(--text-muted)' }}>No associated posts found for this user.</p>
+                  <p style={{ color: 'var(--text-muted)' }}>No posts associated with this user.</p>
                 )}
               </div>
             )}
           </div>
 
-          {/* Public Posts Stream */}
-          <div className="panel">
-            <div className="panel-header">
-              <h3 className="panel-title">Public Posts Stream ({posts.length} entries)</h3>
+          {/* Public Posts Feed */}
+          <div className="academic-panel">
+            <div className="panel-header-row">
+              <h3 className="panel-heading">Public Posts Stream ({posts.length} entries)</h3>
             </div>
             {posts.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', padding: '20px 0' }}>No records published.</p>
+              <p style={{ color: 'var(--text-muted)', padding: '16px 0' }}>No records published yet.</p>
             ) : (
               posts.map((post) => (
                 <div
                   key={post._id}
                   style={{
-                    borderBottom: '1px solid var(--border-subtle)',
-                    padding: '12px 0'
+                    borderBottom: '1px solid #f1f5f9',
+                    padding: '12px 0',
+                    textAlign: 'left'
                   }}
                 >
-                  <h4 style={{ fontSize: '15px', color: 'var(--text-main)' }}>{post.title}</h4>
-                  <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0 8px 0' }}>{post.content}</p>
+                  <h4 style={{ fontSize: '15px', color: 'var(--text-dark)' }}>{post.title}</h4>
+                  <p style={{ fontSize: '13px', color: 'var(--text-body)', margin: '4px 0 8px 0' }}>{post.content}</p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                       Author: <strong>{post.user ? post.user.name : 'Unknown'}</strong> (
@@ -790,13 +798,13 @@ export default function App() {
                     </span>
                     {post.user && (
                       <button
-                        className="btn btn-outline btn-sm"
+                        className="btn-gov btn-gov-secondary btn-gov-sm"
                         onClick={() => {
                           setLookupUserId(post.user._id);
                           handleLookup(post.user._id);
                         }}
                       >
-                        Run $lookup for Author
+                        Inspect via $lookup
                       </button>
                     )}
                   </div>
@@ -813,49 +821,51 @@ export default function App() {
       {user.role === 'admin' && activeTab === 'admin' && (
         <div>
           {/* Add User Panel */}
-          <div className="panel">
-            <div className="panel-header">
-              <h3 className="panel-title">Administrator: Enroll Member</h3>
-              <p className="panel-desc">Direct administrative creation with customized initial role.</p>
+          <div className="academic-panel">
+            <div className="panel-header-row">
+              <div>
+                <h3 className="panel-heading">Administrator: Enroll Member</h3>
+                <p className="panel-subtext">Direct user management with role assignment.</p>
+              </div>
             </div>
             <form onSubmit={handleAddAdminUser}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="form-field">
-                  <label className="form-label">Full Name</label>
+                <div className="field-group">
+                  <label className="field-label">Full Name</label>
                   <input
                     type="text"
                     required
-                    className="form-input"
+                    className="field-input"
                     value={newAdminUser.name}
                     onChange={(e) => setNewAdminUser({ ...newAdminUser, name: e.target.value })}
                   />
                 </div>
-                <div className="form-field">
-                  <label className="form-label">Email</label>
+                <div className="field-group">
+                  <label className="field-label">Email Address</label>
                   <input
                     type="email"
                     required
-                    className="form-input"
+                    className="field-input"
                     value={newAdminUser.email}
                     onChange={(e) => setNewAdminUser({ ...newAdminUser, email: e.target.value })}
                   />
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                <div className="form-field">
-                  <label className="form-label">Password</label>
+                <div className="field-group">
+                  <label className="field-label">Password</label>
                   <input
                     type="password"
                     required
-                    className="form-input"
+                    className="field-input"
                     value={newAdminUser.password}
                     onChange={(e) => setNewAdminUser({ ...newAdminUser, password: e.target.value })}
                   />
                 </div>
-                <div className="form-field">
-                  <label className="form-label">Role</label>
+                <div className="field-group">
+                  <label className="field-label">Role</label>
                   <select
-                    className="form-select"
+                    className="field-select"
                     value={newAdminUser.role}
                     onChange={(e) => setNewAdminUser({ ...newAdminUser, role: e.target.value })}
                   >
@@ -863,33 +873,35 @@ export default function App() {
                     <option value="admin">Admin</option>
                   </select>
                 </div>
-                <div className="form-field">
-                  <label className="form-label">Interests (Comma separated)</label>
+                <div className="field-group">
+                  <label className="field-label">Interests (Comma separated)</label>
                   <input
                     type="text"
-                    className="form-input"
+                    className="field-input"
                     value={newAdminUser.interests}
                     onChange={(e) => setNewAdminUser({ ...newAdminUser, interests: e.target.value })}
                   />
                 </div>
               </div>
-              <button type="submit" className="btn btn-primary">
-                Add User to System
+              <button type="submit" className="btn-gov btn-gov-primary">
+                Add User
               </button>
             </form>
           </div>
 
           {/* Members Table */}
-          <div className="panel">
-            <div className="panel-header">
-              <h3 className="panel-title">System User Accounts</h3>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                Index: <code>{'{ createdAt: -1 }'}</code>
-              </span>
+          <div className="academic-panel">
+            <div className="panel-header-row">
+              <div>
+                <h3 className="panel-heading">System User Accounts</h3>
+                <p className="panel-subtext">
+                  Supported by index: <code>{'{ createdAt: -1 }'}</code>
+                </p>
+              </div>
             </div>
 
             <div style={{ overflowX: 'auto' }}>
-              <table className="data-table">
+              <table className="academic-table">
                 <thead>
                   <tr>
                     <th>Name</th>
@@ -907,12 +919,12 @@ export default function App() {
                       </td>
                       <td>{u.email}</td>
                       <td>
-                        <span className={`role-badge ${u.role}`}>{u.role}</span>
+                        <span className={`badge-role ${u.role}`}>{u.role}</span>
                       </td>
                       <td>
                         {u.interests && u.interests.length > 0
                           ? u.interests.map((i) => (
-                              <span key={i} className="tag-academic">
+                              <span key={i} className="meta-tag">
                                 {i}
                               </span>
                             ))
@@ -921,7 +933,7 @@ export default function App() {
                       <td style={{ textAlign: 'right' }}>
                         {u._id !== user._id && (
                           <button
-                            className="btn btn-danger btn-sm"
+                            className="btn-gov btn-gov-danger btn-gov-sm"
                             onClick={() => handleDeleteAdminUser(u._id)}
                           >
                             Remove
@@ -936,9 +948,9 @@ export default function App() {
 
             {/* Pagination Controls */}
             {userPages > 1 && (
-              <div className="pagination-bar">
+              <div className="academic-pagination">
                 <button
-                  className="btn btn-secondary btn-sm"
+                  className="btn-gov btn-gov-secondary btn-gov-sm"
                   disabled={userPage <= 1}
                   onClick={() => setUserPage((p) => Math.max(p - 1, 1))}
                 >
@@ -948,7 +960,7 @@ export default function App() {
                   Page <strong>{userPage}</strong> of <strong>{userPages}</strong>
                 </span>
                 <button
-                  className="btn btn-secondary btn-sm"
+                  className="btn-gov btn-gov-secondary btn-gov-sm"
                   disabled={userPage >= userPages}
                   onClick={() => setUserPage((p) => Math.min(p + 1, userPages))}
                 >
