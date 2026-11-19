@@ -64,7 +64,6 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
   const [activeTab, setActiveTab] = useState('notes');
-  const [systemHealth, setSystemHealth] = useState({ status: 'Connecting...', database: 'Checking' });
 
   // Ref to scroll smoothly to $lookup box
   const lookupSectionRef = useRef(null);
@@ -113,13 +112,6 @@ export default function App() {
     role: 'user',
     interests: ''
   });
-
-  // Check backend health on initial load
-  useEffect(() => {
-    request('/api/health')
-      .then((data) => setSystemHealth(data))
-      .catch(() => setSystemHealth({ status: 'offline', database: 'Disconnected' }));
-  }, []);
 
   // Fetch relevant data on tab, page or pageSize change
   useEffect(() => {
@@ -203,7 +195,7 @@ export default function App() {
         body: JSON.stringify(newNote)
       });
       setNewNote({ title: '', content: '' });
-      notifySuccess('Note Saved', 'Record added to repository');
+      toast.success('Note created successfully');
       fetchNotes(1, pageSize);
     } catch (err) {
       notifyError(err.message);
@@ -212,6 +204,7 @@ export default function App() {
 
   const handleUpdateNote = async (e) => {
     e.preventDefault();
+    if (!editingNote) return;
     try {
       await request(`/api/notes/${editingNote._id}`, {
         method: 'PUT',
@@ -221,7 +214,7 @@ export default function App() {
         })
       });
       setEditingNote(null);
-      notifySuccess('Note Updated', 'Modifications saved');
+      toast.success('Note updated successfully');
       fetchNotes(notePage, pageSize);
     } catch (err) {
       notifyError(err.message);
@@ -234,7 +227,7 @@ export default function App() {
 
     try {
       await request(`/api/notes/${id}`, { method: 'DELETE' });
-      notifySuccess('Deleted', 'Note record removed');
+      toast.success('Note deleted successfully');
       fetchNotes(notePage, pageSize);
     } catch (err) {
       notifyError(err.message);
@@ -421,7 +414,7 @@ export default function App() {
   }
 
   // Live Note Word Counter & Reading Time
-  const currentNoteContent = editingNote ? editingNote.content : newNote.content;
+  const currentNoteContent = newNote.content || '';
   const wordCount = currentNoteContent.trim() ? currentNoteContent.trim().split(/\s+/).length : 0;
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
 
@@ -647,10 +640,6 @@ export default function App() {
           </p>
         </div>
         <div className="header-user-info">
-          <span className="health-status-pill">
-            <span className="health-dot"></span>
-            DB {systemHealth.database || 'Online'}
-          </span>
           <span className={`badge-role ${user.role}`}>{user.role}</span>
           <button className="btn-gov btn-gov-secondary btn-gov-sm" onClick={handleLogout}>
             Sign Out
@@ -688,6 +677,61 @@ export default function App() {
         )}
       </nav>
 
+      {/* Edit Note Popup Modal */}
+      {editingNote && (
+        <div className="modal-overlay" onClick={() => setEditingNote(null)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Edit Note</h3>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setEditingNote(null)}
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleUpdateNote}>
+              <div className="modal-body">
+                <div className="field-group">
+                  <label className="field-label">Title</label>
+                  <input
+                    type="text"
+                    required
+                    className="field-input"
+                    value={editingNote.title}
+                    onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
+                  />
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Content Body</label>
+                  <textarea
+                    required
+                    className="field-textarea"
+                    style={{ minHeight: '130px' }}
+                    value={editingNote.content}
+                    onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn-gov btn-gov-secondary"
+                  onClick={() => setEditingNote(null)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-gov btn-gov-primary">
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* TAB 1: NOTES REPOSITORY (CRUD + DATA TABLE / GRID + PAGINATION) */}
       {/* ========================================================================= */}
@@ -696,12 +740,12 @@ export default function App() {
           {/* Note Composition Panel */}
           <div className="academic-panel">
             <div className="panel-header-row">
-              <h3 className="panel-heading">{editingNote ? 'Modify Note Record' : 'Compose New Note'}</h3>
+              <h3 className="panel-heading">Compose New Note</h3>
               <span className="word-meta-badge">
                 {wordCount} words • ~{readingTime} min read
               </span>
             </div>
-            <form onSubmit={editingNote ? handleUpdateNote : handleCreateNote}>
+            <form onSubmit={handleCreateNote}>
               <div className="field-group">
                 <label className="field-label">Record Title</label>
                 <input
@@ -709,12 +753,8 @@ export default function App() {
                   required
                   className="field-input"
                   placeholder="Enter title..."
-                  value={editingNote ? editingNote.title : newNote.title}
-                  onChange={(e) =>
-                    editingNote
-                      ? setEditingNote({ ...editingNote, title: e.target.value })
-                      : setNewNote({ ...newNote, title: e.target.value })
-                  }
+                  value={newNote.title}
+                  onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
                 />
               </div>
               <div className="field-group">
@@ -723,28 +763,13 @@ export default function App() {
                   required
                   className="field-textarea"
                   placeholder="Write note contents..."
-                  value={editingNote ? editingNote.content : newNote.content}
-                  onChange={(e) =>
-                    editingNote
-                      ? setEditingNote({ ...editingNote, content: e.target.value })
-                      : setNewNote({ ...newNote, content: e.target.value })
-                  }
+                  value={newNote.content}
+                  onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
                 />
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button type="submit" className="btn-gov btn-gov-primary">
-                  {editingNote ? 'Update Note' : 'Save Note'}
-                </button>
-                {editingNote && (
-                  <button
-                    type="button"
-                    className="btn-gov btn-gov-secondary"
-                    onClick={() => setEditingNote(null)}
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
+              <button type="submit" className="btn-gov btn-gov-primary">
+                Save Note
+              </button>
             </form>
           </div>
 
@@ -756,7 +781,7 @@ export default function App() {
                   {user.role === 'admin' ? 'All System Notes (Administrator View)' : 'Your Notes Collection'}
                 </h3>
                 <p className="panel-subtext">
-                  Supported by index: {user.role === 'admin' ? '{ createdAt: -1 }' : '{ user: 1, createdAt: -1 }'}
+                  {user.role === 'admin' ? 'Administrative view across all system users' : 'Your personal saved records'}
                 </p>
               </div>
 
