@@ -1,6 +1,41 @@
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import { request } from './api';
 import './App.css';
+
+// Academic SweetAlert2 Notification Helpers
+const notifySuccess = (title, text = '') => {
+  Swal.fire({
+    icon: 'success',
+    title,
+    text,
+    timer: 2000,
+    showConfirmButton: false,
+    confirmButtonColor: '#002147'
+  });
+};
+
+const notifyError = (text) => {
+  Swal.fire({
+    icon: 'error',
+    title: 'Error',
+    text,
+    confirmButtonColor: '#002147'
+  });
+};
+
+const confirmDialog = async (title, text = '') => {
+  const result = await Swal.fire({
+    title,
+    text,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#b91c1c',
+    cancelButtonColor: '#4b5563',
+    confirmButtonText: 'Confirm Delete'
+  });
+  return result.isConfirmed;
+};
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -8,8 +43,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
   const [activeTab, setActiveTab] = useState('notes');
-  const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
+  const [systemHealth, setSystemHealth] = useState({ status: 'Connecting...', database: 'Checking' });
 
   // Auth Form State
   const [isRegister, setIsRegister] = useState(false);
@@ -25,6 +59,7 @@ export default function App() {
   const [notes, setNotes] = useState([]);
   const [notePage, setNotePage] = useState(1);
   const [notePages, setNotePages] = useState(1);
+  const [noteSearch, setNoteSearch] = useState('');
   const [newNote, setNewNote] = useState({ title: '', content: '' });
   const [editingNote, setEditingNote] = useState(null);
 
@@ -50,18 +85,14 @@ export default function App() {
     interests: ''
   });
 
-  // Clear notifications after 4 seconds
+  // Check backend health on initial load
   useEffect(() => {
-    if (error || info) {
-      const timer = setTimeout(() => {
-        setError('');
-        setInfo('');
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [error, info]);
+    request('/api/health')
+      .then((data) => setSystemHealth(data))
+      .catch(() => setSystemHealth({ status: 'offline', database: 'Disconnected' }));
+  }, []);
 
-  // Load notes when page or user changes
+  // Fetch relevant data on tab or page change
   useEffect(() => {
     if (user && activeTab === 'notes') {
       fetchNotes(notePage);
@@ -80,7 +111,6 @@ export default function App() {
   // --- AUTH HANDLERS ---
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     try {
       const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
       const payload = isRegister
@@ -98,18 +128,21 @@ export default function App() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data));
       setUser(data);
-      setInfo(`Welcome, ${data.name}!`);
+      notifySuccess(isRegister ? 'Account Registered' : 'Authentication Successful', `Welcome, ${data.name}`);
     } catch (err) {
-      setError(err.message);
+      notifyError(err.message);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const confirmed = await confirmDialog('Sign Out', 'Are you sure you wish to log out?');
+    if (!confirmed) return;
+
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
     setNotes([]);
-    setInfo('Logged out successfully');
+    notifySuccess('Signed Out', 'You have been safely disconnected');
   };
 
   // --- NOTES HANDLERS ---
@@ -120,7 +153,7 @@ export default function App() {
       setNotePage(data.page || 1);
       setNotePages(data.pages || 1);
     } catch (err) {
-      setError(err.message);
+      notifyError(err.message);
     }
   };
 
@@ -132,10 +165,10 @@ export default function App() {
         body: JSON.stringify(newNote)
       });
       setNewNote({ title: '', content: '' });
-      setInfo('Note created successfully!');
+      notifySuccess('Note Saved', 'Record added to repository');
       fetchNotes(1);
     } catch (err) {
-      setError(err.message);
+      notifyError(err.message);
     }
   };
 
@@ -150,23 +183,32 @@ export default function App() {
         })
       });
       setEditingNote(null);
-      setInfo('Note updated successfully!');
+      notifySuccess('Note Updated', 'Modifications recorded');
       fetchNotes(notePage);
     } catch (err) {
-      setError(err.message);
+      notifyError(err.message);
     }
   };
 
   const handleDeleteNote = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this note?')) return;
+    const confirmed = await confirmDialog('Delete Record', 'This action will permanently remove this note.');
+    if (!confirmed) return;
+
     try {
       await request(`/api/notes/${id}`, { method: 'DELETE' });
-      setInfo('Note deleted successfully');
+      notifySuccess('Deleted', 'Note record removed');
       fetchNotes(notePage);
     } catch (err) {
-      setError(err.message);
+      notifyError(err.message);
     }
   };
+
+  // Filter notes locally by search keyword
+  const filteredNotes = notes.filter(
+    (n) =>
+      n.title.toLowerCase().includes(noteSearch.toLowerCase()) ||
+      n.content.toLowerCase().includes(noteSearch.toLowerCase())
+  );
 
   // --- AGGREGATION 1: GROUP BY INTERESTS ---
   const fetchInterests = async () => {
@@ -175,7 +217,7 @@ export default function App() {
       const data = await request('/api/users/by-interests');
       setInterestsData(data);
     } catch (err) {
-      setError(err.message);
+      notifyError(err.message);
     } finally {
       setLoadingInterests(false);
     }
@@ -187,7 +229,7 @@ export default function App() {
       const data = await request('/api/posts?limit=10');
       setPosts(data.posts || []);
     } catch (err) {
-      setError(err.message);
+      notifyError(err.message);
     }
   };
 
@@ -199,25 +241,25 @@ export default function App() {
         body: JSON.stringify(newPost)
       });
       setNewPost({ title: '', content: '' });
-      setInfo('Post published!');
+      notifySuccess('Post Published', 'Visible across the public platform');
       fetchPosts();
     } catch (err) {
-      setError(err.message);
+      notifyError(err.message);
     }
   };
 
   const handleLookup = async (idToLookup) => {
     const id = idToLookup || lookupUserId;
     if (!id) {
-      setError('Please provide a valid User ID for $lookup');
+      notifyError('Please specify a valid User ID to perform $lookup aggregation.');
       return;
     }
     try {
       const data = await request(`/api/posts/user/${id}`);
       setLookupResult(data);
-      setInfo(`Successfully fetched posts via $lookup for ${data.name}`);
+      notifySuccess('$lookup Successful', `Aggregated ${data.posts ? data.posts.length : 0} posts for ${data.name}`);
     } catch (err) {
-      setError(err.message);
+      notifyError(err.message);
     }
   };
 
@@ -229,7 +271,7 @@ export default function App() {
       setUserPage(data.page || 1);
       setUserPages(data.pages || 1);
     } catch (err) {
-      setError(err.message);
+      notifyError(err.message);
     }
   };
 
@@ -245,70 +287,71 @@ export default function App() {
         body: JSON.stringify(payload)
       });
       setNewAdminUser({ name: '', email: '', password: '', role: 'user', interests: '' });
-      setInfo('New user added successfully!');
+      notifySuccess('User Created', 'New member enrolled in system');
       fetchAdminUsers(userPage);
     } catch (err) {
-      setError(err.message);
+      notifyError(err.message);
     }
   };
 
   const handleDeleteAdminUser = async (id) => {
-    if (!window.confirm('Delete this user?')) return;
+    const confirmed = await confirmDialog('Remove Member', 'Are you certain you wish to delete this user?');
+    if (!confirmed) return;
+
     try {
       await request(`/api/users/${id}`, { method: 'DELETE' });
-      setInfo('User removed successfully');
+      notifySuccess('Member Removed', 'User record cleared');
       fetchAdminUsers(userPage);
     } catch (err) {
-      setError(err.message);
+      notifyError(err.message);
     }
   };
 
-  // --- IF NOT LOGGED IN: SHOW AUTH FORM ---
+  // --- IF NOT LOGGED IN: ACADEMIC AUTHENTICATION SCREEN ---
   if (!user) {
     return (
-      <div className="container" style={{ maxWidth: '420px', marginTop: '60px' }}>
-        <div className="card">
-          <h2>{isRegister ? 'Create Account' : 'Sign In'}</h2>
-          <p style={{ color: 'var(--muted)', fontSize: '13px', marginBottom: '16px' }}>
-            Secure Note-Taking Platform with Role-Based Access Control
-          </p>
-
-          {error && <div className="alert alert-error">{error}</div>}
-          {info && <div className="alert alert-info">{info}</div>}
+      <div className="container" style={{ maxWidth: '440px', marginTop: '50px' }}>
+        <div className="panel">
+          <div className="panel-header">
+            <div>
+              <h2 className="panel-title">{isRegister ? 'New Account Registration' : 'Institutional Sign In'}</h2>
+              <p className="panel-desc">Secure Note-Taking Platform & RBAC Repository</p>
+            </div>
+          </div>
 
           <form onSubmit={handleAuthSubmit}>
             {isRegister && (
-              <div className="form-group">
-                <label>Name</label>
+              <div className="form-field">
+                <label className="form-label">Full Legal Name</label>
                 <input
                   type="text"
                   required
-                  className="form-control"
+                  className="form-input"
                   value={authData.name}
                   onChange={(e) => setAuthData({ ...authData, name: e.target.value })}
-                  placeholder="Your full name"
+                  placeholder="e.g. Shihab Candidate"
                 />
               </div>
             )}
 
-            <div className="form-group">
-              <label>Email Address</label>
+            <div className="form-field">
+              <label className="form-label">Email Address</label>
               <input
                 type="email"
                 required
-                className="form-control"
+                className="form-input"
                 value={authData.email}
                 onChange={(e) => setAuthData({ ...authData, email: e.target.value })}
-                placeholder="name@example.com"
+                placeholder="name@institution.ac.uk"
               />
             </div>
 
-            <div className="form-group">
-              <label>Password</label>
+            <div className="form-field">
+              <label className="form-label">Password</label>
               <input
                 type="password"
                 required
-                className="form-control"
+                className="form-input"
                 value={authData.password}
                 onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
                 placeholder="••••••••"
@@ -317,128 +360,132 @@ export default function App() {
 
             {isRegister && (
               <>
-                <div className="form-group">
-                  <label>Role (for interview demo)</label>
+                <div className="form-field">
+                  <label className="form-label">Account Role Assignment</label>
                   <select
-                    className="form-control"
+                    className="form-select"
                     value={authData.role}
                     onChange={(e) => setAuthData({ ...authData, role: e.target.value })}
                   >
-                    <option value="user">User (can manage own notes)</option>
-                    <option value="admin">Admin (manage users & view all notes)</option>
+                    <option value="user">User (Standard permissions)</option>
+                    <option value="admin">Admin (System supervisor permissions)</option>
                   </select>
                 </div>
 
-                <div className="form-group">
-                  <label>Interests (comma separated for Scenario 1)</label>
+                <div className="form-field">
+                  <label className="form-label">Research / Personal Interests</label>
                   <input
                     type="text"
-                    className="form-control"
+                    className="form-input"
                     value={authData.interests}
                     onChange={(e) => setAuthData({ ...authData, interests: e.target.value })}
-                    placeholder="chess, reading, tech"
+                    placeholder="chess, reading, computer science"
                   />
+                  <p className="form-help">Comma-delimited entries utilized in MongoDB Scenario 1 aggregation.</p>
                 </div>
               </>
             )}
 
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px' }}>
-              {isRegister ? 'Register' : 'Login'}
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>
+              {isRegister ? 'Enroll Account' : 'Authenticate Credentials'}
             </button>
           </form>
 
-          <p style={{ marginTop: '16px', fontSize: '13px', textAlign: 'center' }}>
-            {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
+          <div style={{ marginTop: '18px', textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)' }}>
+            {isRegister ? 'Already possess credentials?' : 'Require an account?'}{' '}
             <button
               type="button"
-              onClick={() => {
-                setIsRegister(!isRegister);
-                setError('');
-              }}
+              onClick={() => setIsRegister(!isRegister)}
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--primary)',
-                fontWeight: 600,
+                color: 'var(--navy-primary)',
+                fontWeight: 700,
+                textDecoration: 'underline',
                 cursor: 'pointer'
               }}
             >
-              {isRegister ? 'Login here' : 'Register here'}
+              {isRegister ? 'Proceed to Sign In' : 'Register Here'}
             </button>
-          </p>
+          </div>
         </div>
       </div>
     );
   }
 
-  // --- LOGGED IN DASHBOARD ---
+  // --- LOGGED IN INSTITUTIONAL DASHBOARD ---
   return (
     <div className="container">
-      {/* Top Header */}
-      <header className="header">
+      {/* Top Academic Header */}
+      <header className="academic-header">
         <div>
-          <h1>Secure Note-Taking Application</h1>
-          <p style={{ fontSize: '13px', color: 'var(--muted)' }}>
-            Logged in as <strong>{user.name}</strong> ({user.email})
+          <h1 className="site-title">Secure Note-Taking Portal</h1>
+          <p className="site-subtitle">
+            Authenticated Member: <strong>{user.name}</strong> &lt;{user.email}&gt;
           </p>
         </div>
-        <div className="user-badge">
-          <span className={`role-tag ${user.role}`}>{user.role}</span>
-          <button className="btn btn-secondary btn-sm" onClick={handleLogout}>
-            Logout
+        <div className="user-status-bar">
+          <span className="system-pill">
+            <span className="system-dot"></span>
+            DB {systemHealth.database || 'Online'}
+          </span>
+          <span className={`role-badge ${user.role}`}>{user.role}</span>
+          <button className="btn btn-outline btn-sm" onClick={handleLogout}>
+            Sign Out
           </button>
         </div>
       </header>
 
-      {/* Notifications */}
-      {error && <div className="alert alert-error">{error}</div>}
-      {info && <div className="alert alert-info">{info}</div>}
-
-      {/* Navigation Tabs */}
-      <div className="tabs">
+      {/* Academic Navigation Tabs */}
+      <nav className="nav-tabs">
         <button
-          className={`tab-btn ${activeTab === 'notes' ? 'active' : ''}`}
+          className={`nav-tab-item ${activeTab === 'notes' ? 'active' : ''}`}
           onClick={() => setActiveTab('notes')}
         >
-          📝 Notes {user.role === 'admin' ? '(Admin View: All Notes)' : '(My Notes)'}
+          Notes Repository {user.role === 'admin' ? '(Admin View)' : '(Personal)'}
         </button>
         <button
-          className={`tab-btn ${activeTab === 'interests' ? 'active' : ''}`}
+          className={`nav-tab-item ${activeTab === 'interests' ? 'active' : ''}`}
           onClick={() => setActiveTab('interests')}
         >
-          📊 Scenario 1: Group by Interests
+          Scenario 1: Group by Interests
         </button>
         <button
-          className={`tab-btn ${activeTab === 'posts' ? 'active' : ''}`}
+          className={`nav-tab-item ${activeTab === 'posts' ? 'active' : ''}`}
           onClick={() => setActiveTab('posts')}
         >
-          📰 Scenario 2: User Posts ($lookup)
+          Scenario 2: User Posts ($lookup)
         </button>
         {user.role === 'admin' && (
           <button
-            className={`tab-btn ${activeTab === 'admin' ? 'active' : ''}`}
+            className={`nav-tab-item ${activeTab === 'admin' ? 'active' : ''}`}
             onClick={() => setActiveTab('admin')}
           >
-            👥 Admin: User Management
+            Administration Panel
           </button>
         )}
-      </div>
+      </nav>
 
       {/* ========================================================================= */}
-      {/* TAB 1: NOTES CRUD & PAGINATION */}
+      {/* TAB 1: NOTES REPOSITORY (CRUD + PAGINATION + RBAC) */}
       {/* ========================================================================= */}
       {activeTab === 'notes' && (
         <div>
-          {/* Create Note Card */}
-          <div className="card">
-            <h3>{editingNote ? 'Edit Note' : 'Create a New Note'}</h3>
+          {/* Note Composition Panel */}
+          <div className="panel">
+            <div className="panel-header">
+              <h3 className="panel-title">{editingNote ? 'Modify Note Record' : 'Compose New Note'}</h3>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Length: {(editingNote ? editingNote.content : newNote.content).length} chars
+              </span>
+            </div>
             <form onSubmit={editingNote ? handleUpdateNote : handleCreateNote}>
-              <div className="form-group">
+              <div className="form-field">
                 <input
                   type="text"
                   required
-                  className="form-control"
-                  placeholder="Note Title"
+                  className="form-input"
+                  placeholder="Record Title"
                   value={editingNote ? editingNote.title : newNote.title}
                   onChange={(e) =>
                     editingNote
@@ -447,11 +494,11 @@ export default function App() {
                   }
                 />
               </div>
-              <div className="form-group">
+              <div className="form-field">
                 <textarea
                   required
-                  className="form-control"
-                  placeholder="Write your note content here..."
+                  className="form-textarea"
+                  placeholder="Type note contents..."
                   value={editingNote ? editingNote.content : newNote.content}
                   onChange={(e) =>
                     editingNote
@@ -462,7 +509,7 @@ export default function App() {
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button type="submit" className="btn btn-primary">
-                  {editingNote ? 'Update Note' : 'Save Note'}
+                  {editingNote ? 'Update Record' : 'Save Record'}
                 </button>
                 {editingNote && (
                   <button
@@ -477,52 +524,62 @@ export default function App() {
             </form>
           </div>
 
-          {/* Notes Grid */}
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3>
-                {user.role === 'admin' ? "Everyone's Notes (Admin View)" : 'Your Notes'} (
-                {notes.length} shown)
-              </h3>
-              <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                Index: {user.role === 'admin' ? '{ createdAt: -1 }' : '{ user: 1, createdAt: -1 }'}
-              </span>
+          {/* Records Display Panel */}
+          <div className="panel">
+            <div className="panel-header">
+              <div>
+                <h3 className="panel-title">
+                  {user.role === 'admin' ? 'All System Notes (Administrator View)' : 'Personal Notes Collection'}
+                </h3>
+                <p className="panel-desc">
+                  Supported by index: {user.role === 'admin' ? '{ createdAt: -1 }' : '{ user: 1, createdAt: -1 }'}
+                </p>
+              </div>
+              <div className="search-wrapper" style={{ margin: 0 }}>
+                <input
+                  type="text"
+                  className="form-input"
+                  style={{ width: '220px', padding: '6px 10px', fontSize: '13px' }}
+                  placeholder="Filter records..."
+                  value={noteSearch}
+                  onChange={(e) => setNoteSearch(e.target.value)}
+                />
+              </div>
             </div>
 
-            {notes.length === 0 ? (
-              <p style={{ color: 'var(--muted)', padding: '20px 0' }}>No notes found on this page.</p>
+            {filteredNotes.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', padding: '24px 0', textAlign: 'center' }}>
+                No records match current parameters.
+              </p>
             ) : (
-              <div className="note-grid">
-                {notes.map((note) => (
-                  <div key={note._id} className="note-item">
+              <div className="notes-grid">
+                {filteredNotes.map((note) => (
+                  <div key={note._id} className="note-card">
                     <div>
-                      <h4 className="note-title">{note.title}</h4>
-                      <p className="note-content">{note.content}</p>
+                      <h4 className="note-heading">{note.title}</h4>
+                      <p className="note-body">{note.content}</p>
                     </div>
                     <div>
-                      <div className="note-meta">
-                        {user.role === 'admin' && note.user && (
-                          <div>
-                            <strong>Author:</strong> {note.user.name} ({note.user.email})
-                          </div>
-                        )}
-                        <div>
-                          <strong>Created:</strong> {new Date(note.createdAt).toLocaleDateString()}
+                      <div className="note-footer">
+                        <span>
+                          {user.role === 'admin' && note.user
+                            ? `By: ${note.user.name}`
+                            : new Date(note.createdAt).toLocaleDateString()}
+                        </span>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => setEditingNote(note)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDeleteNote(note._id)}
+                          >
+                            Delete
+                          </button>
                         </div>
-                      </div>
-                      <div className="note-actions">
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => setEditingNote(note)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDeleteNote(note._id)}
-                        >
-                          Delete
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -532,23 +589,23 @@ export default function App() {
 
             {/* Pagination Controls */}
             {notePages > 1 && (
-              <div className="pagination">
+              <div className="pagination-bar">
                 <button
                   className="btn btn-secondary btn-sm"
                   disabled={notePage <= 1}
-                  onClick={() => setNotePage((prev) => Math.max(prev - 1, 1))}
+                  onClick={() => setNotePage((p) => Math.max(p - 1, 1))}
                 >
-                  &larr; Previous
+                  &larr; Previous Page
                 </button>
-                <span style={{ fontSize: '13px', fontWeight: 600 }}>
-                  Page {notePage} of {notePages}
+                <span>
+                  Page <strong>{notePage}</strong> of <strong>{notePages}</strong>
                 </span>
                 <button
                   className="btn btn-secondary btn-sm"
                   disabled={notePage >= notePages}
-                  onClick={() => setNotePage((prev) => Math.min(prev + 1, notePages))}
+                  onClick={() => setNotePage((p) => Math.min(p + 1, notePages))}
                 >
-                  Next &rarr;
+                  Next Page &rarr;
                 </button>
               </div>
             )}
@@ -560,37 +617,43 @@ export default function App() {
       {/* TAB 2: AGGREGATION SCENARIO 1 (GROUP BY INTERESTS) */}
       {/* ========================================================================= */}
       {activeTab === 'interests' && (
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="panel">
+          <div className="panel-header">
             <div>
-              <h3>Scenario 1: Users Grouped by Interests</h3>
-              <p style={{ fontSize: '13px', color: 'var(--muted)' }}>
-                MongoDB Aggregation: Single <code>collection.aggregate([$unwind, $group, $sort])</code> call.
+              <h3 className="panel-title">Aggregation Scenario 1: Group by Interests</h3>
+              <p className="panel-desc">
+                Requirement: Executed via a single <code>collection.aggregate()</code> call ($unwind, $group, $sort).
               </p>
             </div>
-            <button className="btn btn-secondary btn-sm" onClick={fetchInterests}>
-              Refresh
+            <button className="btn btn-outline btn-sm" onClick={fetchInterests}>
+              Re-run Aggregation
             </button>
           </div>
 
           {loadingInterests ? (
-            <p style={{ padding: '20px 0', color: 'var(--muted)' }}>Running aggregation pipeline...</p>
+            <p style={{ padding: '24px 0', color: 'var(--text-muted)' }}>Executing MongoDB aggregation pipeline...</p>
           ) : interestsData.length === 0 ? (
-            <p style={{ padding: '20px 0', color: 'var(--muted)' }}>No interests found.</p>
+            <p style={{ padding: '24px 0', color: 'var(--text-muted)' }}>No interests data available.</p>
           ) : (
-            <div style={{ marginTop: '16px' }}>
-              {interestsData.map((item) => (
-                <div key={item.interest} className="interest-group">
-                  <div>
-                    <span className="interest-badge">{item.interest}</span>
-                    <strong style={{ fontSize: '14px' }}>
-                      {item.totalUsers} {item.totalUsers === 1 ? 'User' : 'Users'}
+            <div>
+              {interestsData.map((group) => (
+                <div
+                  key={group.interest}
+                  style={{
+                    borderBottom: '1px solid var(--border-subtle)',
+                    padding: '14px 0'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className="tag-academic">{group.interest}</span>
+                    <strong style={{ fontSize: '13px' }}>
+                      {group.totalUsers} {group.totalUsers === 1 ? 'Individual' : 'Individuals'}
                     </strong>
                   </div>
-                  <ul className="interest-users">
-                    {item.users.map((u) => (
-                      <li key={u._id}>
-                        {u.name} — <span style={{ color: 'var(--muted)' }}>{u.email}</span> (
+                  <ul style={{ paddingLeft: '22px', marginTop: '6px', fontSize: '13px' }}>
+                    {group.users.map((u) => (
+                      <li key={u._id} style={{ margin: '3px 0' }}>
+                        {u.name} — <span style={{ color: 'var(--text-muted)' }}>{u.email}</span> (
                         <span style={{ fontSize: '11px', textTransform: 'uppercase' }}>{u.role}</span>)
                       </li>
                     ))}
@@ -607,25 +670,28 @@ export default function App() {
       {/* ========================================================================= */}
       {activeTab === 'posts' && (
         <div>
-          {/* Create Post */}
-          <div className="card">
-            <h3>Publish a Public Post</h3>
+          {/* Post Creation */}
+          <div className="panel">
+            <div className="panel-header">
+              <h3 className="panel-title">Publish Public Document / Post</h3>
+              <p className="panel-desc">Stored in Posts collection; visible across all user accounts.</p>
+            </div>
             <form onSubmit={handleCreatePost}>
-              <div className="form-group">
+              <div className="form-field">
                 <input
                   type="text"
                   required
-                  className="form-control"
+                  className="form-input"
                   placeholder="Post Title"
                   value={newPost.title}
                   onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
                 />
               </div>
-              <div className="form-group">
+              <div className="form-field">
                 <textarea
                   required
-                  className="form-control"
-                  placeholder="Post content visible to everyone..."
+                  className="form-textarea"
+                  placeholder="Body content..."
                   value={newPost.content}
                   onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
                 />
@@ -636,79 +702,101 @@ export default function App() {
             </form>
           </div>
 
-          {/* $lookup Interactive Inspector */}
-          <div className="card" style={{ borderLeft: '4px solid var(--primary)' }}>
-            <h3>Scenario 2: Retrieve User Posts ($lookup Stage)</h3>
-            <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '12px' }}>
-              Constraint: Single aggregation pipeline with a <code>$lookup</code> stage. Supported by index{' '}
-              <code>postSchema.index({'{ user: 1 }'})</code>.
-            </p>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+          {/* Interactive $lookup Inspection */}
+          <div className="panel" style={{ borderLeft: '4px solid var(--navy-primary)' }}>
+            <div className="panel-header">
+              <div>
+                <h3 className="panel-title">Scenario 2: User Posts ($lookup Stage)</h3>
+                <p className="panel-desc">
+                  Constraint: Single pipeline with <code>$lookup</code> stage. Supported by index{' '}
+                  <code>postSchema.index({'{ user: 1 }'})</code>.
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
               <input
                 type="text"
-                className="form-control"
-                placeholder="Enter User ObjectId or click 'Lookup' below"
+                className="form-input"
+                placeholder="Paste Target User ObjectId or click 'Lookup' below"
                 value={lookupUserId}
                 onChange={(e) => setLookupUserId(e.target.value)}
               />
               <button className="btn btn-primary" onClick={() => handleLookup()}>
-                Run $lookup
+                Execute $lookup
               </button>
             </div>
 
             {lookupResult && (
               <div
                 style={{
-                  background: '#f1f5f9',
-                  borderRadius: '6px',
-                  padding: '16px',
+                  background: '#f8fafc',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '3px',
+                  padding: '14px',
                   fontSize: '13px'
                 }}
               >
-                <h4>
-                  Aggregation Result for: {lookupResult.name} ({lookupResult.email})
+                <h4 style={{ color: 'var(--navy-primary)' }}>
+                  Aggregation Target: {lookupResult.name} &lt;{lookupResult.email}&gt;
                 </h4>
-                <p style={{ color: 'var(--muted)', marginBottom: '8px' }}>
-                  Total Joined Posts via $lookup: <strong>{lookupResult.posts ? lookupResult.posts.length : 0}</strong>
+                <p style={{ color: 'var(--text-muted)', margin: '4px 0 10px 0' }}>
+                  Joined Posts via $lookup: <strong>{lookupResult.posts ? lookupResult.posts.length : 0}</strong>
                 </p>
                 {lookupResult.posts && lookupResult.posts.length > 0 ? (
                   lookupResult.posts.map((p) => (
-                    <div key={p._id} style={{ background: 'white', padding: '10px', borderRadius: '4px', marginBottom: '8px' }}>
+                    <div
+                      key={p._id}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid var(--border-subtle)',
+                        padding: '10px 12px',
+                        marginBottom: '8px',
+                        borderRadius: '2px'
+                      }}
+                    >
                       <strong>{p.title}</strong>
-                      <p style={{ fontSize: '12px', color: '#475569' }}>{p.content}</p>
+                      <p style={{ fontSize: '13px', color: '#4b5563', marginTop: '2px' }}>{p.content}</p>
                     </div>
                   ))
                 ) : (
-                  <p style={{ color: 'var(--muted)' }}>This user has not published any posts yet.</p>
+                  <p style={{ color: 'var(--text-muted)' }}>No associated posts found for this user.</p>
                 )}
               </div>
             )}
           </div>
 
-          {/* Public Posts Feed */}
-          <div className="card">
-            <h3>Public Posts Feed ({posts.length} posts)</h3>
+          {/* Public Posts Stream */}
+          <div className="panel">
+            <div className="panel-header">
+              <h3 className="panel-title">Public Posts Stream ({posts.length} entries)</h3>
+            </div>
             {posts.length === 0 ? (
-              <p style={{ color: 'var(--muted)' }}>No posts published yet.</p>
+              <p style={{ color: 'var(--text-muted)', padding: '20px 0' }}>No records published.</p>
             ) : (
               posts.map((post) => (
-                <div key={post._id} className="post-item">
-                  <h4>{post.title}</h4>
-                  <p style={{ fontSize: '14px', color: '#334155', margin: '6px 0' }}>{post.content}</p>
+                <div
+                  key={post._id}
+                  style={{
+                    borderBottom: '1px solid var(--border-subtle)',
+                    padding: '12px 0'
+                  }}
+                >
+                  <h4 style={{ fontSize: '15px', color: 'var(--text-main)' }}>{post.title}</h4>
+                  <p style={{ fontSize: '13px', color: '#374151', margin: '4px 0 8px 0' }}>{post.content}</p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                      By: <strong>{post.user ? post.user.name : 'Unknown'}</strong> (
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Author: <strong>{post.user ? post.user.name : 'Unknown'}</strong> (
                       {post.user ? post.user.email : ''})
                     </span>
                     {post.user && (
                       <button
-                        className="btn btn-secondary btn-sm"
+                        className="btn btn-outline btn-sm"
                         onClick={() => {
                           setLookupUserId(post.user._id);
                           handleLookup(post.user._id);
                         }}
                       >
-                        Inspect User via $lookup
+                        Run $lookup for Author
                       </button>
                     )}
                   </div>
@@ -720,54 +808,54 @@ export default function App() {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 4: ADMIN USER MANAGEMENT (Admin Only) */}
+      {/* TAB 4: ADMINISTRATION PANEL (ADMIN ONLY) */}
       {/* ========================================================================= */}
       {user.role === 'admin' && activeTab === 'admin' && (
         <div>
-          {/* Add User Card */}
-          <div className="card">
-            <h3>Admin: Add New User</h3>
+          {/* Add User Panel */}
+          <div className="panel">
+            <div className="panel-header">
+              <h3 className="panel-title">Administrator: Enroll Member</h3>
+              <p className="panel-desc">Direct administrative creation with customized initial role.</p>
+            </div>
             <form onSubmit={handleAddAdminUser}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label>Name</label>
+                <div className="form-field">
+                  <label className="form-label">Full Name</label>
                   <input
                     type="text"
                     required
-                    className="form-control"
-                    placeholder="Full Name"
+                    className="form-input"
                     value={newAdminUser.name}
                     onChange={(e) => setNewAdminUser({ ...newAdminUser, name: e.target.value })}
                   />
                 </div>
-                <div className="form-group">
-                  <label>Email</label>
+                <div className="form-field">
+                  <label className="form-label">Email</label>
                   <input
                     type="email"
                     required
-                    className="form-control"
-                    placeholder="user@example.com"
+                    className="form-input"
                     value={newAdminUser.email}
                     onChange={(e) => setNewAdminUser({ ...newAdminUser, email: e.target.value })}
                   />
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label>Password</label>
+                <div className="form-field">
+                  <label className="form-label">Password</label>
                   <input
                     type="password"
                     required
-                    className="form-control"
-                    placeholder="Password"
+                    className="form-input"
                     value={newAdminUser.password}
                     onChange={(e) => setNewAdminUser({ ...newAdminUser, password: e.target.value })}
                   />
                 </div>
-                <div className="form-group">
-                  <label>Role</label>
+                <div className="form-field">
+                  <label className="form-label">Role</label>
                   <select
-                    className="form-control"
+                    className="form-select"
                     value={newAdminUser.role}
                     onChange={(e) => setNewAdminUser({ ...newAdminUser, role: e.target.value })}
                   >
@@ -775,59 +863,62 @@ export default function App() {
                     <option value="admin">Admin</option>
                   </select>
                 </div>
-                <div className="form-group">
-                  <label>Interests</label>
+                <div className="form-field">
+                  <label className="form-label">Interests (Comma separated)</label>
                   <input
                     type="text"
-                    className="form-control"
-                    placeholder="chess, football"
+                    className="form-input"
                     value={newAdminUser.interests}
                     onChange={(e) => setNewAdminUser({ ...newAdminUser, interests: e.target.value })}
                   />
                 </div>
               </div>
               <button type="submit" className="btn btn-primary">
-                Add User
+                Add User to System
               </button>
             </form>
           </div>
 
-          {/* User List with Pagination */}
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3>System Users List</h3>
-              <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+          {/* Members Table */}
+          <div className="panel">
+            <div className="panel-header">
+              <h3 className="panel-title">System User Accounts</h3>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                 Index: <code>{'{ createdAt: -1 }'}</code>
               </span>
             </div>
 
-            <div style={{ overflowX: 'auto', marginTop: '12px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="data-table">
                 <thead>
-                  <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--border)', color: 'var(--muted)' }}>
-                    <th style={{ padding: '8px' }}>Name</th>
-                    <th style={{ padding: '8px' }}>Email</th>
-                    <th style={{ padding: '8px' }}>Role</th>
-                    <th style={{ padding: '8px' }}>Interests</th>
-                    <th style={{ padding: '8px', textAlign: 'right' }}>Actions</th>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Interests</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {adminUsers.map((u) => (
-                    <tr key={u._id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '10px 8px' }}>
+                    <tr key={u._id}>
+                      <td>
                         <strong>{u.name}</strong>
                       </td>
-                      <td style={{ padding: '10px 8px' }}>{u.email}</td>
-                      <td style={{ padding: '10px 8px' }}>
-                        <span className={`role-tag ${u.role}`}>{u.role}</span>
+                      <td>{u.email}</td>
+                      <td>
+                        <span className={`role-badge ${u.role}`}>{u.role}</span>
                       </td>
-                      <td style={{ padding: '10px 8px' }}>
+                      <td>
                         {u.interests && u.interests.length > 0
-                          ? u.interests.join(', ')
-                          : <span style={{ color: 'var(--muted)' }}>None</span>}
+                          ? u.interests.map((i) => (
+                              <span key={i} className="tag-academic">
+                                {i}
+                              </span>
+                            ))
+                          : 'None'}
                       </td>
-                      <td style={{ padding: '10px 8px', textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right' }}>
                         {u._id !== user._id && (
                           <button
                             className="btn btn-danger btn-sm"
@@ -845,23 +936,23 @@ export default function App() {
 
             {/* Pagination Controls */}
             {userPages > 1 && (
-              <div className="pagination">
+              <div className="pagination-bar">
                 <button
                   className="btn btn-secondary btn-sm"
                   disabled={userPage <= 1}
-                  onClick={() => setUserPage((prev) => Math.max(prev - 1, 1))}
+                  onClick={() => setUserPage((p) => Math.max(p - 1, 1))}
                 >
-                  &larr; Previous
+                  &larr; Previous Page
                 </button>
-                <span style={{ fontSize: '13px', fontWeight: 600 }}>
-                  Page {userPage} of {userPages}
+                <span>
+                  Page <strong>{userPage}</strong> of <strong>{userPages}</strong>
                 </span>
                 <button
                   className="btn btn-secondary btn-sm"
                   disabled={userPage >= userPages}
-                  onClick={() => setUserPage((prev) => Math.min(prev + 1, userPages))}
+                  onClick={() => setUserPage((p) => Math.min(p + 1, userPages))}
                 >
-                  Next &rarr;
+                  Next Page &rarr;
                 </button>
               </div>
             )}
