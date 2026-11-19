@@ -69,8 +69,7 @@ export default function App() {
   // Ref to scroll smoothly to $lookup box
   const lookupSectionRef = useRef(null);
 
-  // Auth Form State & Demo Tab selection ('admin' or 'user', null on initial load)
-  const [demoTab, setDemoTab] = useState(null);
+  // Auth Form State
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [authData, setAuthData] = useState({
@@ -142,18 +141,6 @@ export default function App() {
   const copyToClipboard = (text, label = 'Copied to clipboard') => {
     navigator.clipboard.writeText(text);
     toast.success(label);
-  };
-
-  // Switch demo dashboard profile (Admin Dashboard vs User Dashboard)
-  const handleSelectDemoTab = (role) => {
-    setDemoTab(role);
-    if (role === 'admin') {
-      setAuthData((prev) => ({ ...prev, email: 'admin@demo.com', password: 'password123' }));
-      toast.success('Admin Dashboard credentials loaded');
-    } else {
-      setAuthData((prev) => ({ ...prev, email: 'user@demo.com', password: 'password123' }));
-      toast.success('User Dashboard credentials loaded');
-    }
   };
 
   // --- AUTH HANDLERS ---
@@ -461,26 +448,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Quick Demo Dashboard Tabs (Admin Dashboard / User Dashboard) */}
-          {!isRegister && (
-            <div className="auth-tab-bar">
-              <button
-                type="button"
-                className={`auth-tab-btn ${demoTab === 'admin' ? 'active' : ''}`}
-                onClick={() => handleSelectDemoTab('admin')}
-              >
-                Admin Dashboard
-              </button>
-              <button
-                type="button"
-                className={`auth-tab-btn ${demoTab === 'user' ? 'active' : ''}`}
-                onClick={() => handleSelectDemoTab('user')}
-              >
-                User Dashboard
-              </button>
-            </div>
-          )}
-
           <form onSubmit={handleAuthSubmit}>
             {isRegister && (
               <div className="field-group">
@@ -503,10 +470,7 @@ export default function App() {
                 required
                 className="field-input"
                 value={authData.email}
-                onChange={(e) => {
-                  setAuthData({ ...authData, email: e.target.value });
-                  if (demoTab) setDemoTab(null);
-                }}
+                onChange={(e) => setAuthData({ ...authData, email: e.target.value })}
                 placeholder="name@example.com"
               />
             </div>
@@ -535,10 +499,7 @@ export default function App() {
                   required
                   className="field-input"
                   value={authData.password}
-                  onChange={(e) => {
-                    setAuthData({ ...authData, password: e.target.value });
-                    if (demoTab) setDemoTab(null);
-                  }}
+                  onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
                   placeholder="••••••••"
                 />
                 <button
@@ -645,10 +606,7 @@ export default function App() {
             {isRegister ? 'Already registered?' : 'Need an account?'}{' '}
             <button
               type="button"
-              onClick={() => {
-                setIsRegister(!isRegister);
-                setDemoTab(null);
-              }}
+              onClick={() => setIsRegister(!isRegister)}
               style={{
                 background: 'none',
                 border: 'none',

@@ -372,41 +372,7 @@
   display: inline-block;
 }
 
-/* Auth Top Tabs for Quick Profile Switching (Admin Dashboard / User Dashboard) */
-.auth-tab-bar {
-  display: flex;
-  background-color: #f1f5f9;
-  padding: 4px;
-  border-radius: var(--radius-sm);
-  margin-bottom: 22px;
-  border: 1px solid var(--border-light);
-  gap: 4px;
-}
 
-.auth-tab-btn {
-  flex: 1;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 700;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease-in-out;
-  text-align: center;
-}
-
-.auth-tab-btn:hover {
-  color: var(--primary-navy);
-  background-color: rgba(255, 255, 255, 0.6);
-}
-
-.auth-tab-btn.active {
-  background-color: var(--primary-navy);
-  color: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-}
 
 /* Word Counter & Reading Time Live Badge */
 .word-meta-badge {
