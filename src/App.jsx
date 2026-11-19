@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Swal from 'sweetalert2';
 import { request } from './api';
 import './App.css';
@@ -68,6 +68,9 @@ export default function App() {
   // Custom Inline Toast State (No big popups for minor actions)
   const [inlineToast, setInlineToast] = useState('');
 
+  // Ref to scroll smoothly to $lookup box
+  const lookupSectionRef = useRef(null);
+
   // Auth Form State
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -83,6 +86,7 @@ export default function App() {
   const [notes, setNotes] = useState([]);
   const [notePage, setNotePage] = useState(1);
   const [notePages, setNotePages] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
   const [noteSearch, setNoteSearch] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest', 'alpha'
@@ -125,10 +129,10 @@ export default function App() {
       .catch(() => setSystemHealth({ status: 'offline', database: 'Disconnected' }));
   }, []);
 
-  // Fetch relevant data on tab or page change
+  // Fetch relevant data on tab, page or pageSize change
   useEffect(() => {
     if (user && activeTab === 'notes') {
-      fetchNotes(notePage);
+      fetchNotes(notePage, pageSize);
     }
     if (user && activeTab === 'interests') {
       fetchInterests();
@@ -139,12 +143,24 @@ export default function App() {
     if (user && user.role === 'admin' && activeTab === 'admin') {
       fetchAdminUsers(userPage);
     }
-  }, [user, activeTab, notePage, userPage]);
+  }, [user, activeTab, notePage, pageSize, userPage]);
 
   // Copy helper
   const copyToClipboard = (text, label = 'Copied') => {
     navigator.clipboard.writeText(text);
     triggerInlineToast(`✓ ${label}`);
+  };
+
+  // Preset interest pill adder
+  const addPresetInterest = (interestTag) => {
+    const currentList = authData.interests
+      ? authData.interests.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    if (!currentList.includes(interestTag)) {
+      currentList.push(interestTag);
+      setAuthData({ ...authData, interests: currentList.join(', ') });
+      triggerInlineToast(`+ Added ${interestTag}`);
+    }
   };
 
   // --- AUTH HANDLERS ---
@@ -173,6 +189,17 @@ export default function App() {
     }
   };
 
+  // Quick Demo Autofill handler (One-click login helper for interview)
+  const fillDemoCredentials = (role) => {
+    if (role === 'admin') {
+      setAuthData({ ...authData, email: 'admin@demo.com', password: 'password123' });
+      triggerInlineToast('✓ Admin Credentials Loaded');
+    } else {
+      setAuthData({ ...authData, email: 'user@demo.com', password: 'password123' });
+      triggerInlineToast('✓ User Credentials Loaded');
+    }
+  };
+
   const handleLogout = async () => {
     const confirmed = await confirmDialog('Sign Out', 'Are you sure you wish to log out?');
     if (!confirmed) return;
@@ -185,9 +212,9 @@ export default function App() {
   };
 
   // --- NOTES HANDLERS ---
-  const fetchNotes = async (page = 1) => {
+  const fetchNotes = async (page = 1, limit = pageSize) => {
     try {
-      const data = await request(`/api/notes?page=${page}&limit=6`);
+      const data = await request(`/api/notes?page=${page}&limit=${limit}`);
       setNotes(data.notes || []);
       setNotePage(data.page || 1);
       setNotePages(data.pages || 1);
@@ -205,7 +232,7 @@ export default function App() {
       });
       setNewNote({ title: '', content: '' });
       notifySuccess('Note Saved', 'Record added to repository');
-      fetchNotes(1);
+      fetchNotes(1, pageSize);
     } catch (err) {
       notifyError(err.message);
     }
@@ -223,7 +250,7 @@ export default function App() {
       });
       setEditingNote(null);
       notifySuccess('Note Updated', 'Modifications saved');
-      fetchNotes(notePage);
+      fetchNotes(notePage, pageSize);
     } catch (err) {
       notifyError(err.message);
     }
@@ -236,7 +263,7 @@ export default function App() {
     try {
       await request(`/api/notes/${id}`, { method: 'DELETE' });
       notifySuccess('Deleted', 'Note record removed');
-      fetchNotes(notePage);
+      fetchNotes(notePage, pageSize);
     } catch (err) {
       notifyError(err.message);
     }
@@ -328,9 +355,18 @@ export default function App() {
     try {
       const data = await request(`/api/posts/user/${id}`);
       setLookupResult(data);
-      notifySuccess('$lookup Successful', `Aggregated ${data.posts ? data.posts.length : 0} posts for ${data.name}`);
+      triggerInlineToast(`✓ $lookup: ${data.posts ? data.posts.length : 0} posts found`);
     } catch (err) {
       notifyError(err.message);
+    }
+  };
+
+  // Auto-Lookup this Author with smooth scroll
+  const handleAutoLookup = (authorId) => {
+    setLookupUserId(authorId);
+    handleLookup(authorId);
+    if (lookupSectionRef.current) {
+      lookupSectionRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -385,10 +421,15 @@ export default function App() {
   const ruleNumber = /[0-9]/.test(pass);
   const ruleSymbol = /[^A-Za-z0-9]/.test(pass);
 
+  // Live Note Word Counter & Reading Time
+  const currentNoteContent = editingNote ? editingNote.content : newNote.content;
+  const wordCount = currentNoteContent.trim() ? currentNoteContent.trim().split(/\s+/).length : 0;
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+
   // --- IF NOT LOGGED IN: ACADEMIC AUTHENTICATION SCREEN ---
   if (!user) {
     return (
-      <div className="container" style={{ maxWidth: '450px', marginTop: '60px' }}>
+      <div className="container" style={{ maxWidth: '460px', marginTop: '60px' }}>
         <div className="academic-panel">
           <div className="panel-header-row">
             <div>
@@ -396,6 +437,31 @@ export default function App() {
               <p className="panel-subtext">Secure Note-Taking Platform with Role-Based Access Control</p>
             </div>
           </div>
+
+          {/* Quick Demo Credentials Autofill Banner */}
+          {!isRegister && (
+            <div className="demo-fill-card">
+              <span>Demo Quick-Fill:</span>
+              <div className="demo-btn-group">
+                <button
+                  type="button"
+                  className="demo-chip-btn"
+                  onClick={() => fillDemoCredentials('admin')}
+                  title="Load admin@demo.com"
+                >
+                  Admin Account
+                </button>
+                <button
+                  type="button"
+                  className="demo-chip-btn"
+                  onClick={() => fillDemoCredentials('user')}
+                  title="Load user@demo.com"
+                >
+                  User Account
+                </button>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleAuthSubmit}>
             {isRegister && (
@@ -516,12 +582,26 @@ export default function App() {
                     onChange={(e) => setAuthData({ ...authData, interests: e.target.value })}
                     placeholder="chess, reading, tech"
                   />
-                  <p className="field-hint">Comma-separated entries for MongoDB Scenario 1 aggregation.</p>
+                  {/* Preset Clickable Interest Pills */}
+                  <div className="preset-tags-container">
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Quick Add:</span>
+                    {['chess', 'reading', 'tech', 'football', 'music', 'gaming'].map((tag) => (
+                      <button
+                        type="button"
+                        key={tag}
+                        className="preset-tag-btn"
+                        onClick={() => addPresetInterest(tag)}
+                      >
+                        + {tag}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="field-hint">Used in MongoDB Scenario 1 aggregation.</p>
                 </div>
               </>
             )}
 
-            <button type="submit" className="btn-gov btn-gov-primary" style={{ width: '100%', marginTop: '8px', padding: '10px' }}>
+            <button type="submit" className="btn-gov btn-gov-primary" style={{ width: '100%', marginTop: '10px', padding: '10px' }}>
               {isRegister ? 'Complete Registration' : 'Sign In'}
             </button>
           </form>
@@ -611,8 +691,8 @@ export default function App() {
           <div className="academic-panel">
             <div className="panel-header-row">
               <h3 className="panel-heading">{editingNote ? 'Modify Note Record' : 'Compose New Note'}</h3>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                {(editingNote ? editingNote.content : newNote.content).length} characters
+              <span className="word-meta-badge">
+                {wordCount} words • ~{readingTime} min read
               </span>
             </div>
             <form onSubmit={editingNote ? handleUpdateNote : handleCreateNote}>
@@ -680,16 +760,33 @@ export default function App() {
                 <input
                   type="text"
                   className="field-input"
-                  style={{ width: '180px', padding: '6px 10px', fontSize: '13px' }}
+                  style={{ width: '160px', padding: '6px 10px', fontSize: '13px' }}
                   placeholder="Search notes..."
                   value={noteSearch}
                   onChange={(e) => setNoteSearch(e.target.value)}
                 />
 
+                {/* Rows Per Page Selector */}
+                <select
+                  className="field-select"
+                  style={{ width: '110px', padding: '6px 8px', fontSize: '12px' }}
+                  value={pageSize}
+                  onChange={(e) => {
+                    const newSize = Number(e.target.value);
+                    setPageSize(newSize);
+                    fetchNotes(1, newSize);
+                  }}
+                  title="Rows per page"
+                >
+                  <option value={6}>6 per page</option>
+                  <option value={12}>12 per page</option>
+                  <option value={24}>24 per page</option>
+                </select>
+
                 {/* Sort Order Dropdown */}
                 <select
                   className="field-select"
-                  style={{ width: '120px', padding: '6px 8px', fontSize: '12px' }}
+                  style={{ width: '105px', padding: '6px 8px', fontSize: '12px' }}
                   value={sortOrder}
                   onChange={(e) => setSortOrder(e.target.value)}
                 >
@@ -937,7 +1034,11 @@ export default function App() {
           </div>
 
           {/* Interactive $lookup Inspection */}
-          <div className="academic-panel" style={{ borderLeft: '4px solid var(--primary-navy)' }}>
+          <div
+            ref={lookupSectionRef}
+            className="academic-panel"
+            style={{ borderLeft: '4px solid var(--primary-navy)' }}
+          >
             <div className="panel-header-row">
               <div>
                 <h3 className="panel-heading">Scenario 2: User Posts ($lookup Stage)</h3>
@@ -1034,13 +1135,10 @@ export default function App() {
                           Copy ID
                         </button>
                         <button
-                          className="btn-gov btn-gov-secondary btn-gov-sm"
-                          onClick={() => {
-                            setLookupUserId(post.user._id);
-                            handleLookup(post.user._id);
-                          }}
+                          className="btn-gov btn-gov-primary btn-gov-sm"
+                          onClick={() => handleAutoLookup(post.user._id)}
                         >
-                          Inspect via $lookup
+                          ⚡ Auto-Lookup Author
                         </button>
                       </div>
                     )}
