@@ -247,113 +247,165 @@
   color: var(--primary-navy);
 }
 
-/* Custom Inline Toast Notification (Side fade-in pill) */
-.custom-inline-toast {
+/* Password Strength Range Progress Track */
+.password-strength-container {
+  margin-top: 8px;
+  text-align: left;
+}
+
+.password-strength-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.password-slider-track {
+  width: 100%;
+  height: 6px;
+  background-color: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.password-slider-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.25s ease, background-color 0.25s ease;
+}
+
+/* Info Icon with Hover Tooltip */
+.info-tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.info-icon-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background-color: #ecfdf5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 600;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-2px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Password Requirements Checklist Pills */
-.password-checklist-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.rule-pill {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: 3px;
-  background-color: #f1f5f9;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
-}
-
-.rule-pill.valid {
-  background-color: #f0fdf4;
-  color: #166534;
-  border-color: #bbf7d0;
-}
-
-/* Clickable Preset Interest Tags */
-.preset-tags-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.preset-tag-btn {
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
   color: var(--primary-navy);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 1px 7px;
   border-radius: 3px;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  cursor: help;
+  transition: background-color 0.15s;
 }
 
-.preset-tag-btn:hover {
-  background: #e0f2fe;
-  border-color: #0284c7;
+.info-icon-badge:hover {
+  background-color: #e2e8f0;
 }
 
-/* Quick Demo Credentials Box */
-.demo-fill-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  margin-bottom: 18px;
+.info-tooltip-box {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  width: 220px;
+  background-color: #0f172a;
+  color: #f8fafc;
+  padding: 10px 12px;
+  border-radius: 6px;
   font-size: 12px;
-  color: var(--text-muted);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  text-align: left;
+}
+
+.info-tooltip-wrapper:hover .info-tooltip-box {
+  visibility: visible;
+  opacity: 1;
+}
+
+.info-tooltip-box::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 14px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #0f172a transparent transparent transparent;
+}
+
+.tooltip-title {
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 4px;
+}
+
+.tooltip-criteria-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tooltip-criteria-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.demo-btn-group {
-  display: flex;
   gap: 6px;
-}
-
-.demo-chip-btn {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  color: var(--text-dark);
+  padding: 2px 0;
+  color: #94a3b8;
   font-size: 11px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: all 0.15s ease;
 }
 
-.demo-chip-btn:hover {
-  background: #002147;
+.tooltip-criteria-item.met {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.criteria-icon {
+  font-size: 12px;
+  width: 12px;
+  display: inline-block;
+}
+
+/* Auth Top Tabs for Quick Profile Switching (Admin Dashboard / User Dashboard) */
+.auth-tab-bar {
+  display: flex;
+  background-color: #f1f5f9;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 22px;
+  border: 1px solid var(--border-light);
+  gap: 4px;
+}
+
+.auth-tab-btn {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  text-align: center;
+}
+
+.auth-tab-btn:hover {
+  color: var(--primary-navy);
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+.auth-tab-btn.active {
+  background-color: var(--primary-navy);
   color: #ffffff;
-  border-color: #002147;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 /* Word Counter & Reading Time Live Badge */

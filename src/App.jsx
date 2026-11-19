@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Swal from 'sweetalert2';
+import toast, { Toaster } from 'react-hot-toast';
 import { request } from './api';
 import './App.css';
 
@@ -65,19 +66,17 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('notes');
   const [systemHealth, setSystemHealth] = useState({ status: 'Connecting...', database: 'Checking' });
 
-  // Custom Inline Toast State (No big popups for minor actions)
-  const [inlineToast, setInlineToast] = useState('');
-
   // Ref to scroll smoothly to $lookup box
   const lookupSectionRef = useRef(null);
 
-  // Auth Form State
+  // Auth Form State & Demo Tab selection ('admin' or 'user')
+  const [demoTab, setDemoTab] = useState('admin');
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [authData, setAuthData] = useState({
     name: '',
-    email: '',
-    password: '',
+    email: 'admin@demo.com',
+    password: 'password123',
     role: 'user',
     interests: 'chess, reading'
   });
@@ -116,12 +115,6 @@ export default function App() {
     interests: ''
   });
 
-  // Display custom inline toast for 2.5 seconds
-  const triggerInlineToast = (msg) => {
-    setInlineToast(msg);
-    setTimeout(() => setInlineToast(''), 2500);
-  };
-
   // Check backend health on initial load
   useEffect(() => {
     request('/api/health')
@@ -145,21 +138,21 @@ export default function App() {
     }
   }, [user, activeTab, notePage, pageSize, userPage]);
 
-  // Copy helper
-  const copyToClipboard = (text, label = 'Copied') => {
+  // Copy helper with react-hot-toast notification
+  const copyToClipboard = (text, label = 'Copied to clipboard') => {
     navigator.clipboard.writeText(text);
-    triggerInlineToast(`✓ ${label}`);
+    toast.success(label);
   };
 
-  // Preset interest pill adder
-  const addPresetInterest = (interestTag) => {
-    const currentList = authData.interests
-      ? authData.interests.split(',').map((s) => s.trim()).filter(Boolean)
-      : [];
-    if (!currentList.includes(interestTag)) {
-      currentList.push(interestTag);
-      setAuthData({ ...authData, interests: currentList.join(', ') });
-      triggerInlineToast(`+ Added ${interestTag}`);
+  // Switch demo dashboard profile (Admin Dashboard vs User Dashboard)
+  const handleSelectDemoTab = (role) => {
+    setDemoTab(role);
+    if (role === 'admin') {
+      setAuthData((prev) => ({ ...prev, email: 'admin@demo.com', password: 'password123' }));
+      toast.success('Admin Dashboard credentials loaded');
+    } else {
+      setAuthData((prev) => ({ ...prev, email: 'user@demo.com', password: 'password123' }));
+      toast.success('User Dashboard credentials loaded');
     }
   };
 
@@ -171,6 +164,7 @@ export default function App() {
       const payload = isRegister
         ? {
             ...authData,
+            role: 'user', // Enforce standard user role on public registration
             interests: authData.interests.split(',').map((i) => i.trim()).filter(Boolean)
           }
         : { email: authData.email, password: authData.password };
@@ -186,17 +180,6 @@ export default function App() {
       notifySuccess(isRegister ? 'Account Registered' : 'Authentication Successful', `Welcome, ${data.name}`);
     } catch (err) {
       notifyError(err.message);
-    }
-  };
-
-  // Quick Demo Autofill handler (One-click login helper for interview)
-  const fillDemoCredentials = (role) => {
-    if (role === 'admin') {
-      setAuthData({ ...authData, email: 'admin@demo.com', password: 'password123' });
-      triggerInlineToast('✓ Admin Credentials Loaded');
-    } else {
-      setAuthData({ ...authData, email: 'user@demo.com', password: 'password123' });
-      triggerInlineToast('✓ User Credentials Loaded');
     }
   };
 
@@ -292,7 +275,7 @@ export default function App() {
     a.href = url;
     a.download = `notes_export_${Date.now()}.csv`;
     a.click();
-    triggerInlineToast('✓ Exported to CSV');
+    toast.success('Notes exported to CSV');
   };
 
   // Filter & Sort notes locally
@@ -355,7 +338,7 @@ export default function App() {
     try {
       const data = await request(`/api/posts/user/${id}`);
       setLookupResult(data);
-      triggerInlineToast(`✓ $lookup: ${data.posts ? data.posts.length : 0} posts found`);
+      toast.success(`$lookup: ${data.posts ? data.posts.length : 0} posts found`);
     } catch (err) {
       notifyError(err.message);
     }
@@ -414,12 +397,39 @@ export default function App() {
     }
   };
 
-  // Dynamic Password Validation Rules for Registration
-  const pass = authData.password;
+  // Dynamic Password Validation Rules & Strength Calculation
+  const pass = authData.password || '';
   const ruleLength = pass.length >= 8;
   const ruleUpper = /[A-Z]/.test(pass);
   const ruleNumber = /[0-9]/.test(pass);
   const ruleSymbol = /[^A-Za-z0-9]/.test(pass);
+
+  const rulesPassed = [ruleLength, ruleUpper, ruleNumber, ruleSymbol].filter(Boolean).length;
+  let strengthLabel = 'Weak';
+  let strengthColor = '#dc2626';
+  let strengthPercent = 25;
+
+  if (!pass) {
+    strengthLabel = 'None';
+    strengthColor = '#94a3b8';
+    strengthPercent = 0;
+  } else if (rulesPassed <= 1) {
+    strengthLabel = 'Weak';
+    strengthColor = '#dc2626';
+    strengthPercent = 25;
+  } else if (rulesPassed === 2) {
+    strengthLabel = 'Fair';
+    strengthColor = '#d97706';
+    strengthPercent = 50;
+  } else if (rulesPassed === 3) {
+    strengthLabel = 'Good';
+    strengthColor = '#0284c7';
+    strengthPercent = 75;
+  } else if (rulesPassed === 4) {
+    strengthLabel = 'Strong';
+    strengthColor = '#16a34a';
+    strengthPercent = 100;
+  }
 
   // Live Note Word Counter & Reading Time
   const currentNoteContent = editingNote ? editingNote.content : newNote.content;
@@ -430,6 +440,17 @@ export default function App() {
   if (!user) {
     return (
       <div className="container" style={{ maxWidth: '460px', marginTop: '60px' }}>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 2500,
+            style: {
+              fontSize: '13px',
+              borderRadius: '4px',
+              border: '1px solid #cbd5e1'
+            }
+          }}
+        />
         <div className="academic-panel">
           <div className="panel-header-row">
             <div>
@@ -438,28 +459,23 @@ export default function App() {
             </div>
           </div>
 
-          {/* Quick Demo Credentials Autofill Banner */}
+          {/* Quick Demo Dashboard Tabs (Admin Dashboard / User Dashboard) */}
           {!isRegister && (
-            <div className="demo-fill-card">
-              <span>Demo Quick-Fill:</span>
-              <div className="demo-btn-group">
-                <button
-                  type="button"
-                  className="demo-chip-btn"
-                  onClick={() => fillDemoCredentials('admin')}
-                  title="Load admin@demo.com"
-                >
-                  Admin Account
-                </button>
-                <button
-                  type="button"
-                  className="demo-chip-btn"
-                  onClick={() => fillDemoCredentials('user')}
-                  title="Load user@demo.com"
-                >
-                  User Account
-                </button>
-              </div>
+            <div className="auth-tab-bar">
+              <button
+                type="button"
+                className={`auth-tab-btn ${demoTab === 'admin' ? 'active' : ''}`}
+                onClick={() => handleSelectDemoTab('admin')}
+              >
+                Admin Dashboard
+              </button>
+              <button
+                type="button"
+                className={`auth-tab-btn ${demoTab === 'user' ? 'active' : ''}`}
+                onClick={() => handleSelectDemoTab('user')}
+              >
+                User Dashboard
+              </button>
             </div>
           )}
 
@@ -493,23 +509,20 @@ export default function App() {
             <div className="field-group">
               <div className="field-label-row">
                 <label className="field-label">Password</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {inlineToast && <span className="custom-inline-toast">{inlineToast}</span>}
-                  {isRegister && (
-                    <button
-                      type="button"
-                      className="action-link-btn"
-                      onClick={() => {
-                        const strong = generateStrongPassword();
-                        setAuthData({ ...authData, password: strong });
-                        setShowPassword(true);
-                        triggerInlineToast('✓ Strong Password Generated');
-                      }}
-                    >
-                      Suggest Strong Password
-                    </button>
-                  )}
-                </div>
+                {isRegister && (
+                  <button
+                    type="button"
+                    className="action-link-btn"
+                    onClick={() => {
+                      const strong = generateStrongPassword();
+                      setAuthData({ ...authData, password: strong });
+                      setShowPassword(true);
+                      toast.success('Strong password generated');
+                    }}
+                  >
+                    Suggest Strong Password
+                  </button>
+                )}
               </div>
               <div className="password-field-wrapper">
                 <input
@@ -540,65 +553,66 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Professional Dynamic Password Criteria Checklist */}
+              {/* Password Strength Range Slider & Requirements Tooltip */}
               {isRegister && (
-                <div className="password-checklist-pills">
-                  <span className={`rule-pill ${ruleLength ? 'valid' : ''}`}>
-                    {ruleLength ? '✓' : '•'} 8+ Characters
-                  </span>
-                  <span className={`rule-pill ${ruleUpper ? 'valid' : ''}`}>
-                    {ruleUpper ? '✓' : '•'} Uppercase (A-Z)
-                  </span>
-                  <span className={`rule-pill ${ruleNumber ? 'valid' : ''}`}>
-                    {ruleNumber ? '✓' : '•'} Number (0-9)
-                  </span>
-                  <span className={`rule-pill ${ruleSymbol ? 'valid' : ''}`}>
-                    {ruleSymbol ? '✓' : '•'} Symbol (!@#)
-                  </span>
+                <div className="password-strength-container">
+                  <div className="password-strength-meta">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Strength:</span>
+                      <strong style={{ fontSize: '12px', color: strengthColor }}>{strengthLabel}</strong>
+                    </div>
+
+                    <div className="info-tooltip-wrapper" tabIndex={0}>
+                      <span className="info-icon-badge">ⓘ Requirements</span>
+                      <div className="info-tooltip-box">
+                        <div className="tooltip-title">Security Criteria</div>
+                        <ul className="tooltip-criteria-list">
+                          <li className={`tooltip-criteria-item ${ruleLength ? 'met' : ''}`}>
+                            <span className="criteria-icon">{ruleLength ? '✓' : '•'}</span>
+                            <span>At least 8 characters</span>
+                          </li>
+                          <li className={`tooltip-criteria-item ${ruleUpper ? 'met' : ''}`}>
+                            <span className="criteria-icon">{ruleUpper ? '✓' : '•'}</span>
+                            <span>Uppercase letter (A-Z)</span>
+                          </li>
+                          <li className={`tooltip-criteria-item ${ruleNumber ? 'met' : ''}`}>
+                            <span className="criteria-icon">{ruleNumber ? '✓' : '•'}</span>
+                            <span>At least one number (0-9)</span>
+                          </li>
+                          <li className={`tooltip-criteria-item ${ruleSymbol ? 'met' : ''}`}>
+                            <span className="criteria-icon">{ruleSymbol ? '✓' : '•'}</span>
+                            <span>Special symbol (!@#$%^&*)</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="password-slider-track">
+                    <div
+                      className="password-slider-fill"
+                      style={{
+                        width: `${strengthPercent}%`,
+                        backgroundColor: strengthColor
+                      }}
+                    />
+                  </div>
                 </div>
               )}
             </div>
 
             {isRegister && (
-              <>
-                <div className="field-group">
-                  <label className="field-label">Account Role Assignment</label>
-                  <select
-                    className="field-select"
-                    value={authData.role}
-                    onChange={(e) => setAuthData({ ...authData, role: e.target.value })}
-                  >
-                    <option value="user">User (Standard account)</option>
-                    <option value="admin">Admin (System supervisor)</option>
-                  </select>
-                </div>
-
-                <div className="field-group">
-                  <label className="field-label">Research / Personal Interests</label>
-                  <input
-                    type="text"
-                    className="field-input"
-                    value={authData.interests}
-                    onChange={(e) => setAuthData({ ...authData, interests: e.target.value })}
-                    placeholder="chess, reading, tech"
-                  />
-                  {/* Preset Clickable Interest Pills */}
-                  <div className="preset-tags-container">
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Quick Add:</span>
-                    {['chess', 'reading', 'tech', 'football', 'music', 'gaming'].map((tag) => (
-                      <button
-                        type="button"
-                        key={tag}
-                        className="preset-tag-btn"
-                        onClick={() => addPresetInterest(tag)}
-                      >
-                        + {tag}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="field-hint">Used in MongoDB Scenario 1 aggregation.</p>
-                </div>
-              </>
+              <div className="field-group">
+                <label className="field-label">Research / Personal Interests</label>
+                <input
+                  type="text"
+                  className="field-input"
+                  value={authData.interests}
+                  onChange={(e) => setAuthData({ ...authData, interests: e.target.value })}
+                  placeholder="e.g. chess, reading, robotics"
+                />
+                <p className="field-hint">Comma-separated interests (used in Scenario 1 aggregation).</p>
+              </div>
             )}
 
             <button type="submit" className="btn-gov btn-gov-primary" style={{ width: '100%', marginTop: '10px', padding: '10px' }}>
@@ -631,6 +645,17 @@ export default function App() {
   // --- LOGGED IN INSTITUTIONAL DASHBOARD ---
   return (
     <div className="container">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 2500,
+          style: {
+            fontSize: '13px',
+            borderRadius: '4px',
+            border: '1px solid #cbd5e1'
+          }
+        }}
+      />
       {/* Top Academic Header */}
       <header className="portal-header">
         <div>
@@ -640,7 +665,6 @@ export default function App() {
           </p>
         </div>
         <div className="header-user-info">
-          {inlineToast && <span className="custom-inline-toast">{inlineToast}</span>}
           <span className="health-status-pill">
             <span className="health-dot"></span>
             DB {systemHealth.database || 'Online'}
@@ -1197,7 +1221,7 @@ export default function App() {
                         const strong = generateStrongPassword();
                         setNewAdminUser({ ...newAdminUser, password: strong });
                         setShowAdminPassword(true);
-                        triggerInlineToast('✓ Password Generated');
+                        toast.success('Strong password generated');
                       }}
                     >
                       Suggest
