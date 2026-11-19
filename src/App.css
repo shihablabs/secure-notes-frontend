@@ -816,3 +816,110 @@
   justify-content: flex-end;
   gap: 10px;
 }
+
+/* Dynamic Filter Bar & Loading UX */
+.table-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  background-color: #f8fafc;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+}
+
+.filter-group-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.table-search-input {
+  flex: 1;
+  max-width: 320px;
+  padding: 7px 12px;
+  font-size: 13px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.table-search-input:focus {
+  border-color: var(--primary-navy);
+}
+
+.table-role-select {
+  padding: 7px 10px;
+  font-size: 13px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background-color: #ffffff;
+  outline: none;
+}
+
+.table-loading-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-navy);
+  background-color: #eff6ff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid #bfdbfe;
+}
+
+.spinner-icon {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #93c5fd;
+  border-top-color: var(--primary-navy);
+  border-radius: 50%;
+  animation: spinLoader 0.6s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spinLoader {
+  to { transform: rotate(360deg); }
+}
+
+.table-loading-cell {
+  text-align: center;
+  padding: 40px 20px !important;
+  color: var(--text-muted);
+}
+
+.loading-content-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.loading-content-box .spinner-large {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e2e8f0;
+  border-top-color: var(--primary-navy);
+  border-radius: 50%;
+  animation: spinLoader 0.7s linear infinite;
+}
+
+.loading-content-box span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.academic-pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

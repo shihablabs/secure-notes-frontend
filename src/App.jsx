@@ -106,11 +106,16 @@ export default function App() {
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest', 'alpha'
   const [newNote, setNewNote] = useState({ title: '', content: '' });
   const [editingNote, setEditingNote] = useState(null);
+  const [loadingNotes, setLoadingNotes] = useState(false);
 
   // Admin Users State
   const [adminUsers, setAdminUsers] = useState([]);
   const [userPage, setUserPage] = useState(1);
   const [userPages, setUserPages] = useState(1);
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('all');
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [isSubmittingUser, setIsSubmittingUser] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [newAdminUser, setNewAdminUser] = useState({
     name: '',
@@ -120,15 +125,25 @@ export default function App() {
     interests: ''
   });
 
-  // Fetch relevant data on tab, page or pageSize change
+  // Dynamic server-side fetch for notes with debounce
   useEffect(() => {
     if (user && activeTab === 'notes') {
-      fetchNotes(notePage, pageSize);
+      const timer = setTimeout(() => {
+        fetchNotes(notePage, pageSize, noteSearch, sortOrder);
+      }, 250);
+      return () => clearTimeout(timer);
     }
+  }, [user, activeTab, notePage, pageSize, noteSearch, sortOrder]);
+
+  // Dynamic server-side fetch for admin users with debounce
+  useEffect(() => {
     if (user && user.role === 'admin' && activeTab === 'admin') {
-      fetchAdminUsers(userPage);
+      const timer = setTimeout(() => {
+        fetchAdminUsers(userPage, userSearch, userRoleFilter);
+      }, 250);
+      return () => clearTimeout(timer);
     }
-  }, [user, activeTab, notePage, pageSize, userPage]);
+  }, [user, activeTab, userPage, userSearch, userRoleFilter]);
 
   // Copy helper with react-hot-toast notification
   const copyToClipboard = (text, label = 'Copied to clipboard') => {
@@ -177,14 +192,18 @@ export default function App() {
   };
 
   // --- NOTES HANDLERS ---
-  const fetchNotes = async (page = 1, limit = pageSize) => {
+  const fetchNotes = async (page = notePage, limit = pageSize, search = noteSearch, sort = sortOrder) => {
+    setLoadingNotes(true);
     try {
-      const data = await request(`/api/notes?page=${page}&limit=${limit}`);
+      const query = `/api/notes?page=${page}&limit=${limit}&search=${encodeURIComponent(search || '')}&sort=${sort || 'newest'}`;
+      const data = await request(query);
       setNotes(data.notes || []);
       setNotePage(data.page || 1);
       setNotePages(data.pages || 1);
     } catch (err) {
       notifyError(err.message);
+    } finally {
+      setLoadingNotes(false);
     }
   };
 
@@ -197,7 +216,7 @@ export default function App() {
       });
       setNewNote({ title: '', content: '' });
       toast.success('Note created successfully');
-      fetchNotes(1, pageSize);
+      fetchNotes(1, pageSize, noteSearch, sortOrder);
     } catch (err) {
       notifyError(err.message);
     }
@@ -216,7 +235,7 @@ export default function App() {
       });
       setEditingNote(null);
       toast.success('Note updated successfully');
-      fetchNotes(notePage, pageSize);
+      fetchNotes(notePage, pageSize, noteSearch, sortOrder);
     } catch (err) {
       notifyError(err.message);
     }
@@ -229,7 +248,7 @@ export default function App() {
     try {
       await request(`/api/notes/${id}`, { method: 'DELETE' });
       toast.success('Note deleted successfully');
-      fetchNotes(notePage, pageSize);
+      fetchNotes(notePage, pageSize, noteSearch, sortOrder);
     } catch (err) {
       notifyError(err.message);
     }
@@ -261,47 +280,58 @@ export default function App() {
     toast.success('Notes exported to CSV');
   };
 
-  // Filter & Sort notes locally
-  const processedNotes = notes
-    .filter(
-      (n) =>
-        n.title.toLowerCase().includes(noteSearch.toLowerCase()) ||
-        n.content.toLowerCase().includes(noteSearch.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (sortOrder === 'alpha') return a.title.localeCompare(b.title);
-      if (sortOrder === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
+  // Notes are dynamically queried and sorted on the server
+  const processedNotes = notes;
 
   // --- ADMIN USER MANAGEMENT HANDLERS ---
-  const fetchAdminUsers = async (page = 1) => {
+  const fetchAdminUsers = async (page = userPage, search = userSearch, role = userRoleFilter) => {
+    setLoadingUsers(true);
     try {
-      const data = await request(`/api/users?page=${page}&limit=5`);
+      const roleParam = role && role !== 'all' ? `&role=${role}` : '';
+      const query = `/api/users?page=${page}&limit=5&search=${encodeURIComponent(search || '')}${roleParam}`;
+      const data = await request(query);
       setAdminUsers(data.users || []);
       setUserPage(data.page || 1);
       setUserPages(data.pages || 1);
     } catch (err) {
       notifyError(err.message);
+    } finally {
+      setLoadingUsers(false);
     }
   };
 
   const handleAddAdminUser = async (e) => {
     e.preventDefault();
+    if (!newAdminUser.name.trim()) {
+      notifyError('Full name is required');
+      return;
+    }
+    if (!newAdminUser.email.trim()) {
+      notifyError('Valid email address is required');
+      return;
+    }
+
+    setIsSubmittingUser(true);
     try {
       const payload = {
-        ...newAdminUser,
+        name: newAdminUser.name.trim(),
+        email: newAdminUser.email.trim(),
+        password: newAdminUser.password,
+        role: newAdminUser.role,
         interests: newAdminUser.interests.split(',').map((i) => i.trim()).filter(Boolean)
       };
-      await request('/api/users', {
+      const created = await request('/api/users', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
       setNewAdminUser({ name: '', email: '', password: '', role: 'user', interests: '' });
-      notifySuccess('User Created', 'New member enrolled in system');
-      fetchAdminUsers(userPage);
+      notifySuccess('User Enrolled Successfully', `${created.name} (${created.email}) has been assigned role: ${created.role.toUpperCase()}`);
+      toast.success('User account created');
+      fetchAdminUsers(1, userSearch, userRoleFilter);
     } catch (err) {
-      notifyError(err.message);
+      notifyError(err.message || 'Failed to create user account.');
+    } finally {
+      setIsSubmittingUser(false);
     }
   };
 
@@ -826,7 +856,12 @@ export default function App() {
               </div>
             </div>
 
-            {processedNotes.length === 0 ? (
+            {loadingNotes ? (
+              <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                <div className="spinner-large" style={{ margin: '0 auto 12px auto' }} />
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading notes repository...</span>
+              </div>
+            ) : processedNotes.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', padding: '24px 0', textAlign: 'left' }}>
                 No records match current parameters.
               </p>
@@ -916,17 +951,18 @@ export default function App() {
               <div className="academic-pagination">
                 <button
                   className="btn-gov btn-gov-secondary btn-gov-sm"
-                  disabled={notePage <= 1}
+                  disabled={loadingNotes || notePage <= 1}
                   onClick={() => setNotePage((p) => Math.max(p - 1, 1))}
                 >
                   &larr; Previous Page
                 </button>
                 <span>
                   Page <strong>{notePage}</strong> of <strong>{notePages}</strong>
+                  {loadingNotes && <span className="spinner-icon" style={{ marginLeft: '8px' }} />}
                 </span>
                 <button
                   className="btn-gov btn-gov-secondary btn-gov-sm"
-                  disabled={notePage >= notePages}
+                  disabled={loadingNotes || notePage >= notePages}
                   onClick={() => setNotePage((p) => Math.min(p + 1, notePages))}
                 >
                   Next Page &rarr;
@@ -1028,8 +1064,14 @@ export default function App() {
                   />
                 </div>
               </div>
-              <button type="submit" className="btn-gov btn-gov-primary">
-                Add User
+              <button
+                type="submit"
+                className="btn-gov btn-gov-primary"
+                disabled={isSubmittingUser}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+              >
+                {isSubmittingUser && <span className="spinner-icon" style={{ borderTopColor: '#ffffff' }} />}
+                {isSubmittingUser ? 'Enrolling Member...' : 'Add User'}
               </button>
             </form>
           </div>
@@ -1043,6 +1085,48 @@ export default function App() {
                   Registered user accounts and permission roles
                 </p>
               </div>
+              {loadingUsers && (
+                <div className="table-loading-indicator">
+                  <span className="spinner-icon" />
+                  <span>Loading accounts...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Dynamic Filter & Search Toolbar */}
+            <div className="table-filter-bar">
+              <div className="filter-group-left">
+                <input
+                  type="text"
+                  className="table-search-input"
+                  placeholder="Search user by name or email..."
+                  value={userSearch}
+                  onChange={(e) => {
+                    setUserSearch(e.target.value);
+                    setUserPage(1);
+                  }}
+                />
+                <select
+                  className="table-role-select"
+                  value={userRoleFilter}
+                  onChange={(e) => {
+                    setUserRoleFilter(e.target.value);
+                    setUserPage(1);
+                  }}
+                >
+                  <option value="all">All Roles</option>
+                  <option value="user">Users only</option>
+                  <option value="admin">Admins only</option>
+                </select>
+              </div>
+              <button
+                type="button"
+                className="btn-gov btn-gov-secondary btn-gov-sm"
+                onClick={() => fetchAdminUsers(userPage, userSearch, userRoleFilter)}
+                disabled={loadingUsers}
+              >
+                Refresh List
+              </button>
             </div>
 
             <div style={{ overflowX: 'auto' }}>
@@ -1057,43 +1141,60 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {adminUsers.map((u) => (
-                    <tr key={u._id}>
-                      <td>
-                        <strong>{u.name}</strong>
-                      </td>
-                      <td>{u.email}</td>
-                      <td>
-                        <span className={`badge-role ${u.role}`}>{u.role}</span>
-                      </td>
-                      <td>
-                        {u.interests && u.interests.length > 0
-                          ? u.interests.map((i) => (
-                              <span key={i} className="meta-tag">
-                                {i}
-                              </span>
-                            ))
-                          : 'None'}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <button
-                          className="action-link-btn"
-                          style={{ marginRight: '10px' }}
-                          onClick={() => copyToClipboard(u._id, 'User ID Copied')}
-                        >
-                          Copy ID
-                        </button>
-                        {u._id !== user._id && (
-                          <button
-                            className="btn-gov btn-gov-danger btn-gov-sm"
-                            onClick={() => handleDeleteAdminUser(u._id)}
-                          >
-                            Remove
-                          </button>
-                        )}
+                  {loadingUsers ? (
+                    <tr>
+                      <td colSpan="5" className="table-loading-cell">
+                        <div className="loading-content-box">
+                          <div className="spinner-large" />
+                          <span>Fetching user accounts from database...</span>
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                  ) : adminUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)' }}>
+                        No user accounts match current search criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    adminUsers.map((u) => (
+                      <tr key={u._id}>
+                        <td>
+                          <strong>{u.name}</strong>
+                        </td>
+                        <td>{u.email}</td>
+                        <td>
+                          <span className={`badge-role ${u.role}`}>{u.role}</span>
+                        </td>
+                        <td>
+                          {u.interests && u.interests.length > 0
+                            ? u.interests.map((i) => (
+                                <span key={i} className="meta-tag">
+                                  {i}
+                                </span>
+                              ))
+                            : 'None'}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            className="action-link-btn"
+                            style={{ marginRight: '10px' }}
+                            onClick={() => copyToClipboard(u._id, 'User ID Copied')}
+                          >
+                            Copy ID
+                          </button>
+                          {u._id !== user._id && (
+                            <button
+                              className="btn-gov btn-gov-danger btn-gov-sm"
+                              onClick={() => handleDeleteAdminUser(u._id)}
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1103,17 +1204,18 @@ export default function App() {
               <div className="academic-pagination">
                 <button
                   className="btn-gov btn-gov-secondary btn-gov-sm"
-                  disabled={userPage <= 1}
+                  disabled={loadingUsers || userPage <= 1}
                   onClick={() => setUserPage((p) => Math.max(p - 1, 1))}
                 >
                   &larr; Previous Page
                 </button>
                 <span>
                   Page <strong>{userPage}</strong> of <strong>{userPages}</strong>
+                  {loadingUsers && <span className="spinner-icon" style={{ marginLeft: '8px' }} />}
                 </span>
                 <button
                   className="btn-gov btn-gov-secondary btn-gov-sm"
-                  disabled={userPage >= userPages}
+                  disabled={loadingUsers || userPage >= userPages}
                   onClick={() => setUserPage((p) => Math.min(p + 1, userPages))}
                 >
                   Next Page &rarr;
