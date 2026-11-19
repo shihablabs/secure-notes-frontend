@@ -69,16 +69,16 @@ export default function App() {
   // Ref to scroll smoothly to $lookup box
   const lookupSectionRef = useRef(null);
 
-  // Auth Form State & Demo Tab selection ('admin' or 'user')
-  const [demoTab, setDemoTab] = useState('admin');
+  // Auth Form State & Demo Tab selection ('admin' or 'user', null on initial load)
+  const [demoTab, setDemoTab] = useState(null);
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [authData, setAuthData] = useState({
     name: '',
-    email: 'admin@demo.com',
-    password: 'password123',
+    email: '',
+    password: '',
     role: 'user',
-    interests: 'chess, reading'
+    interests: ''
   });
 
   // Notes State & Enterprise Table Controls
@@ -164,8 +164,10 @@ export default function App() {
       const payload = isRegister
         ? {
             ...authData,
-            role: 'user', // Enforce standard user role on public registration
-            interests: authData.interests.split(',').map((i) => i.trim()).filter(Boolean)
+            role: authData.role || 'user',
+            interests: authData.interests
+              ? authData.interests.split(',').map((i) => i.trim()).filter(Boolean)
+              : []
           }
         : { email: authData.email, password: authData.password };
 
@@ -501,7 +503,10 @@ export default function App() {
                 required
                 className="field-input"
                 value={authData.email}
-                onChange={(e) => setAuthData({ ...authData, email: e.target.value })}
+                onChange={(e) => {
+                  setAuthData({ ...authData, email: e.target.value });
+                  if (demoTab) setDemoTab(null);
+                }}
                 placeholder="name@example.com"
               />
             </div>
@@ -530,7 +535,10 @@ export default function App() {
                   required
                   className="field-input"
                   value={authData.password}
-                  onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
+                  onChange={(e) => {
+                    setAuthData({ ...authData, password: e.target.value });
+                    if (demoTab) setDemoTab(null);
+                  }}
                   placeholder="••••••••"
                 />
                 <button
@@ -603,15 +611,28 @@ export default function App() {
 
             {isRegister && (
               <div className="field-group">
-                <label className="field-label">Research / Personal Interests</label>
+                <label className="field-label">Account Role Assignment</label>
+                <select
+                  className="field-select"
+                  value={authData.role}
+                  onChange={(e) => setAuthData({ ...authData, role: e.target.value })}
+                >
+                  <option value="user">User (Standard account)</option>
+                  <option value="admin">Admin (System supervisor)</option>
+                </select>
+              </div>
+            )}
+
+            {isRegister && (
+              <div className="field-group">
+                <label className="field-label">Personal / Research Interests</label>
                 <input
                   type="text"
                   className="field-input"
                   value={authData.interests}
                   onChange={(e) => setAuthData({ ...authData, interests: e.target.value })}
-                  placeholder="e.g. chess, reading, robotics"
+                  placeholder="e.g. Artificial Intelligence, Cloud Systems, Reading"
                 />
-                <p className="field-hint">Comma-separated interests (used in Scenario 1 aggregation).</p>
               </div>
             )}
 
@@ -624,7 +645,10 @@ export default function App() {
             {isRegister ? 'Already registered?' : 'Need an account?'}{' '}
             <button
               type="button"
-              onClick={() => setIsRegister(!isRegister)}
+              onClick={() => {
+                setIsRegister(!isRegister);
+                setDemoTab(null);
+              }}
               style={{
                 background: 'none',
                 border: 'none',
