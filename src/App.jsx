@@ -1,8 +1,44 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Swal from 'sweetalert2';
 import toast, { Toaster } from 'react-hot-toast';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import { request } from './api';
 import './App.css';
+
+// Rich Text Quill Configuration
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    ['blockquote', 'code-block'],
+    ['clean']
+  ]
+};
+
+const quillFormats = [
+  'header',
+  'bold', 'italic', 'underline', 'strike',
+  'list',
+  'blockquote', 'code-block'
+];
+
+// Rich text stripping and reading estimation helpers
+const stripHtml = (html) => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+};
+
+const getWordCount = (content) => {
+  const text = stripHtml(content);
+  return text ? text.split(/\s+/).length : 0;
+};
+
+const getReadingTime = (content) => {
+  const words = getWordCount(content);
+  return Math.max(1, Math.ceil(words / 200));
+};
 
 // Academic SweetAlert2 Notification Helpers
 const notifySuccess = (title, text = '') => {
@@ -106,6 +142,7 @@ export default function App() {
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest', 'alpha'
   const [newNote, setNewNote] = useState({ title: '', content: '' });
   const [editingNote, setEditingNote] = useState(null);
+  const [viewingNote, setViewingNote] = useState(null);
   const [loadingNotes, setLoadingNotes] = useState(false);
 
   // Admin Users State
@@ -287,10 +324,16 @@ export default function App() {
   const fetchAdminUsers = async (page = userPage, search = userSearch, role = userRoleFilter) => {
     setLoadingUsers(true);
     try {
-      const roleParam = role && role !== 'all' ? `&role=${role}` : '';
+      const activeRole = role && role !== 'all' ? role.trim().toLowerCase() : '';
+      const roleParam = activeRole ? `&role=${encodeURIComponent(activeRole)}` : '';
       const query = `/api/users?page=${page}&limit=5&search=${encodeURIComponent(search || '')}${roleParam}`;
       const data = await request(query);
-      setAdminUsers(data.users || []);
+      let list = data.users || [];
+      // Safety client-side filter fallback in case server deployment is in progress
+      if (activeRole) {
+        list = list.filter((u) => (u.role || '').toLowerCase() === activeRole);
+      }
+      setAdminUsers(list);
       setUserPage(data.page || 1);
       setUserPages(data.pages || 1);
     } catch (err) {
@@ -382,10 +425,9 @@ export default function App() {
     strengthPercent = 100;
   }
 
-  // Live Note Word Counter & Reading Time
-  const currentNoteContent = newNote.content || '';
-  const wordCount = currentNoteContent.trim() ? currentNoteContent.trim().split(/\s+/).length : 0;
-  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+  // Live Note Word Counter & Reading Time (calculated from stripped text)
+  const wordCount = getWordCount(newNote.content);
+  const readingTime = getReadingTime(newNote.content);
 
   // --- IF NOT LOGGED IN: ACADEMIC AUTHENTICATION SCREEN ---
   if (!user) {
@@ -683,7 +725,7 @@ export default function App() {
       {/* Edit Note Popup Modal */}
       {editingNote && (
         <div className="modal-overlay" onClick={() => setEditingNote(null)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-dialog modal-dialog-large" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">Edit Note</h3>
               <button
@@ -707,14 +749,14 @@ export default function App() {
                     onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
                   />
                 </div>
-                <div className="field-group">
+                <div className="field-group quill-editor-wrapper">
                   <label className="field-label">Content Body</label>
-                  <textarea
-                    required
-                    className="field-textarea"
-                    style={{ minHeight: '130px' }}
+                  <ReactQuill
+                    theme="snow"
                     value={editingNote.content}
-                    onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
+                    onChange={(val) => setEditingNote({ ...editingNote, content: val })}
+                    modules={quillModules}
+                    formats={quillFormats}
                   />
                 </div>
               </div>
@@ -731,6 +773,69 @@ export default function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Note Details Modal (Read Full Massive Content) */}
+      {viewingNote && (
+        <div className="modal-overlay" onClick={() => setViewingNote(null)}>
+          <div className="modal-dialog modal-dialog-large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">{viewingNote.title}</h3>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setViewingNote(null)}
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="modal-body" style={{ maxHeight: '68vh', overflowY: 'auto' }}>
+              <div className="view-note-meta-bar">
+                <span>Author: <strong>{viewingNote.user ? viewingNote.user.name : 'You'}</strong></span>
+                <span>•</span>
+                <span>Date: <strong>{new Date(viewingNote.createdAt).toLocaleDateString()}</strong></span>
+                <span>•</span>
+                <span className="word-meta-badge">
+                  {getWordCount(viewingNote.content)} words • ~{getReadingTime(viewingNote.content)} min read
+                </span>
+              </div>
+              <div
+                className="view-note-rendered-content"
+                dangerouslySetInnerHTML={{ __html: viewingNote.content }}
+              />
+            </div>
+            <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+              <button
+                type="button"
+                className="btn-gov btn-gov-secondary"
+                onClick={() => copyToClipboard(stripHtml(viewingNote.content), 'Note content copied')}
+              >
+                Copy Content
+              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn-gov btn-gov-secondary"
+                  onClick={() => setViewingNote(null)}
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="btn-gov btn-gov-primary"
+                  onClick={() => {
+                    const target = viewingNote;
+                    setViewingNote(null);
+                    setEditingNote(target);
+                  }}
+                >
+                  Edit Note
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -760,14 +865,15 @@ export default function App() {
                   onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
                 />
               </div>
-              <div className="field-group">
+              <div className="field-group quill-editor-wrapper">
                 <label className="field-label">Content Body</label>
-                <textarea
-                  required
-                  className="field-textarea"
-                  placeholder="Write note contents..."
+                <ReactQuill
+                  theme="snow"
                   value={newNote.content}
-                  onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
+                  onChange={(val) => setNewNote({ ...newNote, content: val })}
+                  modules={quillModules}
+                  formats={quillFormats}
+                  placeholder="Write comprehensive, encrypted note body here..."
                 />
               </div>
               <button type="submit" className="btn-gov btn-gov-primary">
@@ -797,7 +903,10 @@ export default function App() {
                   style={{ width: '160px', padding: '6px 10px', fontSize: '13px' }}
                   placeholder="Search notes..."
                   value={noteSearch}
-                  onChange={(e) => setNoteSearch(e.target.value)}
+                  onChange={(e) => {
+                    setNoteSearch(e.target.value);
+                    setNotePage(1);
+                  }}
                 />
 
                 {/* Rows Per Page Selector */}
@@ -808,7 +917,8 @@ export default function App() {
                   onChange={(e) => {
                     const newSize = Number(e.target.value);
                     setPageSize(newSize);
-                    fetchNotes(1, newSize);
+                    setNotePage(1);
+                    fetchNotes(1, newSize, noteSearch, sortOrder);
                   }}
                   title="Rows per page"
                 >
@@ -822,7 +932,12 @@ export default function App() {
                   className="field-select"
                   style={{ width: '105px', padding: '6px 8px', fontSize: '12px' }}
                   value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value)}
+                  onChange={(e) => {
+                    const newSort = e.target.value;
+                    setSortOrder(newSort);
+                    setNotePage(1);
+                    fetchNotes(1, pageSize, noteSearch, newSort);
+                  }}
                 >
                   <option value="newest">Newest</option>
                   <option value="oldest">Oldest</option>
@@ -832,12 +947,14 @@ export default function App() {
                 {/* View Mode Toggle */}
                 <div className="view-mode-toggle">
                   <button
+                    type="button"
                     className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
                     onClick={() => setViewMode('grid')}
                   >
                     Cards
                   </button>
                   <button
+                    type="button"
                     className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
                     onClick={() => setViewMode('table')}
                   >
@@ -847,6 +964,7 @@ export default function App() {
 
                 {/* Export CSV button */}
                 <button
+                  type="button"
                   className="btn-gov btn-gov-secondary btn-gov-sm"
                   title="Export notes to CSV file"
                   onClick={exportNotesToCSV}
@@ -872,7 +990,7 @@ export default function App() {
                   <div key={note._id} className="single-note-card">
                     <div>
                       <h4 className="note-card-title">{note.title}</h4>
-                      <p className="note-card-text">{note.content}</p>
+                      <p className="note-card-text">{stripHtml(note.content)}</p>
                     </div>
                     <div>
                       <div className="note-card-bottom">
@@ -883,12 +1001,22 @@ export default function App() {
                         </span>
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button
+                            type="button"
+                            className="btn-gov btn-gov-secondary btn-gov-sm"
+                            onClick={() => setViewingNote(note)}
+                            title="Read complete note contents in detail"
+                          >
+                            View Details
+                          </button>
+                          <button
+                            type="button"
                             className="btn-gov btn-gov-secondary btn-gov-sm"
                             onClick={() => setEditingNote(note)}
                           >
                             Edit
                           </button>
                           <button
+                            type="button"
                             className="btn-gov btn-gov-danger btn-gov-sm"
                             onClick={() => handleDeleteNote(note._id)}
                           >
@@ -917,15 +1045,32 @@ export default function App() {
                     {processedNotes.map((note) => (
                       <tr key={note._id}>
                         <td>
-                          <strong>{note.title}</strong>
+                          <button
+                            type="button"
+                            className="action-link-btn"
+                            style={{ fontWeight: 700, fontSize: '13px', textAlign: 'left' }}
+                            onClick={() => setViewingNote(note)}
+                            title="Click to view details"
+                          >
+                            {note.title}
+                          </button>
                         </td>
                         <td style={{ color: 'var(--text-muted)', maxWidth: '280px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {note.content}
+                          {stripHtml(note.content)}
                         </td>
                         <td>{note.user ? note.user.name : 'You'}</td>
                         <td>{new Date(note.createdAt).toLocaleDateString()}</td>
                         <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                           <button
+                            type="button"
+                            className="btn-gov btn-gov-secondary btn-gov-sm"
+                            style={{ marginRight: '6px' }}
+                            onClick={() => setViewingNote(note)}
+                          >
+                            View
+                          </button>
+                          <button
+                            type="button"
                             className="btn-gov btn-gov-secondary btn-gov-sm"
                             style={{ marginRight: '6px' }}
                             onClick={() => setEditingNote(note)}
@@ -933,6 +1078,7 @@ export default function App() {
                             Edit
                           </button>
                           <button
+                            type="button"
                             className="btn-gov btn-gov-danger btn-gov-sm"
                             onClick={() => handleDeleteNote(note._id)}
                           >
@@ -946,29 +1092,29 @@ export default function App() {
               </div>
             )}
 
-            {/* Pagination Controls */}
-            {notePages > 1 && (
-              <div className="academic-pagination">
-                <button
-                  className="btn-gov btn-gov-secondary btn-gov-sm"
-                  disabled={loadingNotes || notePage <= 1}
-                  onClick={() => setNotePage((p) => Math.max(p - 1, 1))}
-                >
-                  &larr; Previous Page
-                </button>
-                <span>
-                  Page <strong>{notePage}</strong> of <strong>{notePages}</strong>
-                  {loadingNotes && <span className="spinner-icon" style={{ marginLeft: '8px' }} />}
-                </span>
-                <button
-                  className="btn-gov btn-gov-secondary btn-gov-sm"
-                  disabled={loadingNotes || notePage >= notePages}
-                  onClick={() => setNotePage((p) => Math.min(p + 1, notePages))}
-                >
-                  Next Page &rarr;
-                </button>
-              </div>
-            )}
+            {/* Pagination Controls - Always Visible */}
+            <div className="academic-pagination">
+              <button
+                type="button"
+                className="btn-gov btn-gov-secondary btn-gov-sm"
+                disabled={loadingNotes || notePage <= 1}
+                onClick={() => setNotePage((p) => Math.max(p - 1, 1))}
+              >
+                &larr; Previous Page
+              </button>
+              <span>
+                Page <strong>{notePage}</strong> of <strong>{notePages || 1}</strong>
+                {loadingNotes && <span className="spinner-icon" style={{ marginLeft: '8px' }} />}
+              </span>
+              <button
+                type="button"
+                className="btn-gov btn-gov-secondary btn-gov-sm"
+                disabled={loadingNotes || notePage >= (notePages || 1)}
+                onClick={() => setNotePage((p) => Math.min(p + 1, notePages || 1))}
+              >
+                Next Page &rarr;
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1110,8 +1256,10 @@ export default function App() {
                   className="table-role-select"
                   value={userRoleFilter}
                   onChange={(e) => {
-                    setUserRoleFilter(e.target.value);
+                    const newRole = e.target.value;
+                    setUserRoleFilter(newRole);
                     setUserPage(1);
+                    fetchAdminUsers(1, userSearch, newRole);
                   }}
                 >
                   <option value="all">All Roles</option>
@@ -1199,29 +1347,29 @@ export default function App() {
               </table>
             </div>
 
-            {/* Pagination Controls */}
-            {userPages > 1 && (
-              <div className="academic-pagination">
-                <button
-                  className="btn-gov btn-gov-secondary btn-gov-sm"
-                  disabled={loadingUsers || userPage <= 1}
-                  onClick={() => setUserPage((p) => Math.max(p - 1, 1))}
-                >
-                  &larr; Previous Page
-                </button>
-                <span>
-                  Page <strong>{userPage}</strong> of <strong>{userPages}</strong>
-                  {loadingUsers && <span className="spinner-icon" style={{ marginLeft: '8px' }} />}
-                </span>
-                <button
-                  className="btn-gov btn-gov-secondary btn-gov-sm"
-                  disabled={loadingUsers || userPage >= userPages}
-                  onClick={() => setUserPage((p) => Math.min(p + 1, userPages))}
-                >
-                  Next Page &rarr;
-                </button>
-              </div>
-            )}
+            {/* Pagination Controls - Always Visible */}
+            <div className="academic-pagination">
+              <button
+                type="button"
+                className="btn-gov btn-gov-secondary btn-gov-sm"
+                disabled={loadingUsers || userPage <= 1}
+                onClick={() => setUserPage((p) => Math.max(p - 1, 1))}
+              >
+                &larr; Previous Page
+              </button>
+              <span>
+                Page <strong>{userPage}</strong> of <strong>{userPages || 1}</strong>
+                {loadingUsers && <span className="spinner-icon" style={{ marginLeft: '8px' }} />}
+              </span>
+              <button
+                type="button"
+                className="btn-gov btn-gov-secondary btn-gov-sm"
+                disabled={loadingUsers || userPage >= (userPages || 1)}
+                onClick={() => setUserPage((p) => Math.min(p + 1, userPages || 1))}
+              >
+                Next Page &rarr;
+              </button>
+            </div>
           </div>
         </div>
       )}
