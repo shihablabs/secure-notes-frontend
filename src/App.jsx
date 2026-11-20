@@ -507,31 +507,61 @@ export default function App() {
   const wordCount = getWordCount(newNote.content);
   const readingTime = getReadingTime(newNote.content);
 
-  // --- IF NOT LOGGED IN: ACADEMIC AUTHENTICATION SCREEN ---
+  // --- IF NOT LOGGED IN: OFFICIAL GOV.UK AUTHENTICATION SCREEN ---
   if (!user) {
     return (
-      <div className="container" style={{ maxWidth: '460px', marginTop: '60px' }}>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 2500,
-            style: {
-              fontSize: '13px',
-              borderRadius: '4px',
-              border: '1px solid #cbd5e1'
-            }
-          }}
-        />
-        <div className="academic-panel">
-          <div className="panel-header-row">
-            <div>
-              <h2 className="panel-heading">{isRegister ? 'New Account Registration' : 'Institutional Sign In'}</h2>
-              <p className="panel-subtext">Secure Note-Taking Platform with Role-Based Access Control</p>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        {/* Official GOV.UK Header */}
+        <header className="govuk-header-bar">
+          <div className="govuk-header-inner">
+            <div className="govuk-header-brand">
+              <div className="govuk-crown-logo" title="HM Government">
+                <svg width="34" height="28" viewBox="0 0 34 28" fill="none">
+                  <path d="M17 2L21 11L31 6L26 19H8L3 6L13 11L17 2Z" fill="#ffffff" />
+                  <rect x="7" y="21" width="20" height="3" fill="#ffffff" />
+                  <rect x="5" y="25" width="24" height="3" fill="#ffffff" />
+                </svg>
+              </div>
+              <span className="govuk-logotype-text">GOV.UK</span>
+              <span className="govuk-service-title">Care Guide UK – Secure Notes</span>
             </div>
           </div>
+        </header>
 
-          <form onSubmit={handleAuthSubmit}>
-            {isRegister && (
+        {/* Official GOV.UK Phase Banner */}
+        <div className="govuk-phase-banner">
+          <div className="govuk-phase-banner-inner">
+            <span className="govuk-phase-tag">BETA</span>
+            <span>This is a secure institutional prototype. Your feedback helps us improve it.</span>
+          </div>
+        </div>
+
+        <main className="container" style={{ maxWidth: '520px', marginTop: '36px', flex: '1 0 auto' }}>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 2500,
+              style: {
+                fontSize: '14px',
+                borderRadius: '0px',
+                border: '2px solid #0b0c0c'
+              }
+            }}
+          />
+          <div className="academic-panel">
+            <div className="panel-header-row">
+              <div>
+                <h2 className="panel-heading">{isRegister ? 'Create an institutional account' : 'Sign in to Secure Notes'}</h2>
+                <p className="panel-subtext">Access encrypted record repository and management services</p>
+              </div>
+            </div>
+
+            <div className="govuk-inset-text">
+              Use your registered institutional credentials to access the secure notes service.
+            </div>
+
+            <form onSubmit={handleAuthSubmit}>
+              {isRegister && (
               <div className="field-group">
                 <label className="field-label">Full Name</label>
                 <input
@@ -708,7 +738,7 @@ export default function App() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--primary-navy)',
+                color: 'var(--govuk-blue)',
                 fontWeight: 700,
                 cursor: 'pointer',
                 textDecoration: 'underline'
@@ -718,37 +748,114 @@ export default function App() {
             </button>
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* Official GOV.UK Footer */}
+      <footer className="govuk-footer">
+        <div className="govuk-footer-inner">
+          <div className="govuk-footer-meta">
+            <svg width="41" height="17" viewBox="0 0 41 17" fill="none" className="govuk-ogl-icon">
+              <path d="M10.8 13.9c-2.4 0-4.3-1.9-4.3-4.3s1.9-4.3 4.3-4.3 4.3 1.9 4.3 4.3-1.9 4.3-4.3 4.3zm0-10.8C6.9 3.1 3.7 6.3 3.7 10.2s3.2 7.1 7.1 7.1 7.1-3.2 7.1-7.1-3.2-7.1-7.1-7.1zm17.9 10.8c-2.4 0-4.3-1.9-4.3-4.3s1.9-4.3 4.3-4.3 4.3 1.9 4.3 4.3-1.9 4.3-4.3 4.3zm0-10.8c-3.9 0-7.1 3.2-7.1 7.1s3.2 7.1 7.1 7.1 7.1-3.2 7.1-7.1-3.2-7.1-7.1-7.1z" fill="#505a5f"/>
+            </svg>
+            <span>
+              All content is available under the{' '}
+              <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noreferrer" className="govuk-footer-link">
+                Open Government Licence v3.0
+              </a>, except where otherwise stated
+            </span>
+          </div>
+          <div className="govuk-footer-copyright">&copy; Crown copyright</div>
+        </div>
+      </footer>
+    </div>
     );
   }
 
   // --- LOGGED IN INSTITUTIONAL DASHBOARD ---
   return (
-    <div className="container">
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 2500,
-          style: {
-            fontSize: '13px',
-            borderRadius: '4px',
-            border: '1px solid #cbd5e1'
-          }
-        }}
-      />
-      {/* Executive Academic Header */}
-      <header className="portal-header">
-        <div className="portal-brand">
-          <div className="brand-logo" title="SecureNotes Enterprise">
-            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Official GOV.UK Header */}
+      <header className="govuk-header-bar">
+        <div className="govuk-header-inner">
+          <div className="govuk-header-brand">
+            <div className="govuk-crown-logo" title="HM Government">
+              <svg width="34" height="28" viewBox="0 0 34 28" fill="none">
+                <path d="M17 2L21 11L31 6L26 19H8L3 6L13 11L17 2Z" fill="#ffffff" />
+                <rect x="7" y="21" width="20" height="3" fill="#ffffff" />
+                <rect x="5" y="25" width="24" height="3" fill="#ffffff" />
+              </svg>
+            </div>
+            <span className="govuk-logotype-text">GOV.UK</span>
+            <span className="govuk-service-title">Care Guide UK – Secure Notes</span>
           </div>
-          <div>
-            <h1 className="portal-title">SecureNotes</h1>
-            <p className="portal-subtitle">Enterprise Encrypted Workspace</p>
+
+          {/* Profile Avatar Dropdown */}
+          <div className="profile-menu-wrapper" ref={profileRef}>
+            <button
+              type="button"
+              className="profile-btn"
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              aria-expanded={showProfileMenu}
+            >
+              <div className="profile-avatar-circle">
+                {getInitials(user.name)}
+              </div>
+              <div className="profile-details-column">
+                <span className="profile-name-text">{user.name}</span>
+                <span className="profile-role-tag">{user.role}</span>
+              </div>
+              <span className="profile-caret">▼</span>
+            </button>
+
+            {showProfileMenu && (
+              <div className="profile-dropdown-card">
+                <div className="dropdown-user-header">
+                  <span className="dropdown-user-name">{user.name}</span>
+                  <span className="dropdown-user-email">{user.email}</span>
+                  <div style={{ marginTop: '6px' }}>
+                    <span className={`badge-role ${user.role}`}>{user.role}</span>
+                  </div>
+                </div>
+                <div className="dropdown-divider" />
+                <button
+                  type="button"
+                  className="dropdown-action-btn"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    handleLogout();
+                  }}
+                >
+                  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ marginRight: '8px' }}>
+                    <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Sign Out
+                </button>
+              </div>
+            )}
           </div>
         </div>
+      </header>
+
+      {/* Official GOV.UK Phase Banner */}
+      <div className="govuk-phase-banner">
+        <div className="govuk-phase-banner-inner">
+          <span className="govuk-phase-tag">BETA</span>
+          <span>This is a secure institutional prototype. Your feedback helps us improve it.</span>
+        </div>
+      </div>
+
+      <main className="container" style={{ flex: '1 0 auto' }}>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 2500,
+            style: {
+              fontSize: '14px',
+              borderRadius: '0px',
+              border: '2px solid #0b0c0c'
+            }
+          }}
+        />
 
         {/* Header Navigation Tabs */}
         <nav className="header-nav-tabs">
@@ -769,52 +876,6 @@ export default function App() {
             </button>
           )}
         </nav>
-
-        {/* Profile Avatar Dropdown */}
-        <div className="profile-menu-wrapper" ref={profileRef}>
-          <button
-            type="button"
-            className="profile-btn"
-            onClick={() => setShowProfileMenu(!showProfileMenu)}
-            aria-expanded={showProfileMenu}
-          >
-            <div className="profile-avatar-circle">
-              {getInitials(user.name)}
-            </div>
-            <div className="profile-details-column">
-              <span className="profile-name-text">{user.name}</span>
-              <span className={`profile-role-tag ${user.role}`}>{user.role}</span>
-            </div>
-            <span className="profile-caret">▼</span>
-          </button>
-
-          {showProfileMenu && (
-            <div className="profile-dropdown-card">
-              <div className="dropdown-user-header">
-                <span className="dropdown-user-name">{user.name}</span>
-                <span className="dropdown-user-email">{user.email}</span>
-                <div style={{ marginTop: '6px' }}>
-                  <span className={`badge-role ${user.role}`}>{user.role}</span>
-                </div>
-              </div>
-              <div className="dropdown-divider" />
-              <button
-                type="button"
-                className="dropdown-action-btn logout-action"
-                onClick={() => {
-                  setShowProfileMenu(false);
-                  handleLogout();
-                }}
-              >
-                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ marginRight: '8px' }}>
-                  <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Sign Out
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
 
       {/* Edit Note Popup Modal */}
       {editingNote && (
@@ -952,6 +1013,9 @@ export default function App() {
               <span className="word-meta-badge">
                 {wordCount} words • ~{readingTime} min read
               </span>
+            </div>
+            <div className="govuk-inset-text">
+              Notes are encrypted and indexed according to official Equality-Sort-Range (ESR) database rules.
             </div>
             <form onSubmit={handleCreateNote}>
               <div className="field-group">
@@ -1228,6 +1292,9 @@ export default function App() {
                 <p className="panel-subtext">Direct user management with role assignment.</p>
               </div>
             </div>
+            <div className="govuk-inset-text">
+              Direct institutional user registration. Roles determine access permissions to system notes and administrative controls.
+            </div>
             <form onSubmit={handleAddAdminUser}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="field-group">
@@ -1493,17 +1560,23 @@ export default function App() {
         </div>
       )}
 
-      {/* Executive Portal Footer */}
-      <footer className="portal-footer">
-        <div>
-          <span>&copy; {new Date().getFullYear()} SecureNotes Enterprise Inc. All rights reserved.</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span className="footer-badge">
-            <span className="status-dot-active" />
-            256-bit Encrypted Session
-          </span>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Role-Based Access Control</span>
+      </main>
+
+      {/* Official GOV.UK Footer */}
+      <footer className="govuk-footer">
+        <div className="govuk-footer-inner">
+          <div className="govuk-footer-meta">
+            <svg width="41" height="17" viewBox="0 0 41 17" fill="none" className="govuk-ogl-icon">
+              <path d="M10.8 13.9c-2.4 0-4.3-1.9-4.3-4.3s1.9-4.3 4.3-4.3 4.3 1.9 4.3 4.3-1.9 4.3-4.3 4.3zm0-10.8C6.9 3.1 3.7 6.3 3.7 10.2s3.2 7.1 7.1 7.1 7.1-3.2 7.1-7.1-3.2-7.1-7.1-7.1zm17.9 10.8c-2.4 0-4.3-1.9-4.3-4.3s1.9-4.3 4.3-4.3 4.3 1.9 4.3 4.3-1.9 4.3-4.3 4.3zm0-10.8c-3.9 0-7.1 3.2-7.1 7.1s3.2 7.1 7.1 7.1 7.1-3.2 7.1-7.1-3.2-7.1-7.1-7.1z" fill="#505a5f"/>
+            </svg>
+            <span>
+              All content is available under the{' '}
+              <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noreferrer" className="govuk-footer-link">
+                Open Government Licence v3.0
+              </a>, except where otherwise stated
+            </span>
+          </div>
+          <div className="govuk-footer-copyright">&copy; Crown copyright</div>
         </div>
       </footer>
     </div>
