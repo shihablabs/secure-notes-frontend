@@ -507,34 +507,11 @@ export default function App() {
   const wordCount = getWordCount(newNote.content);
   const readingTime = getReadingTime(newNote.content);
 
-  // --- IF NOT LOGGED IN: INSTITUTIONAL AUTHENTICATION SCREEN ---
+  // --- IF NOT LOGGED IN: CLEAN AUTHENTICATION SCREEN ---
   if (!user) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        {/* Institutional Header */}
-        <header className="govuk-header-bar">
-          <div className="govuk-header-inner">
-            <div className="govuk-header-brand">
-              <div className="govuk-crown-logo" title="Care Guide UK">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="rgba(255,255,255,0.2)" />
-                </svg>
-              </div>
-              <span className="govuk-logotype-text">Care Guide UK</span>
-              <span className="govuk-service-title">Secure Notes</span>
-            </div>
-          </div>
-        </header>
-
-        {/* Phase Banner */}
-        <div className="govuk-phase-banner">
-          <div className="govuk-phase-banner-inner">
-            <span className="govuk-phase-tag">BETA</span>
-            <span>This is a secure institutional prototype. Your feedback helps us improve it.</span>
-          </div>
-        </div>
-
-        <main className="container" style={{ maxWidth: '520px', marginTop: '36px', flex: '1 0 auto' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ width: '100%', maxWidth: '480px' }}>
           <Toaster
             position="top-right"
             toastOptions={{
@@ -546,16 +523,27 @@ export default function App() {
               }
             }}
           />
-          <div className="academic-panel">
-            <div className="panel-header-row">
-              <div>
-                <h2 className="panel-heading">{isRegister ? 'Create an institutional account' : 'Sign in to Secure Notes'}</h2>
-                <p className="panel-subtext">Access encrypted record repository and management services</p>
+          <div className="academic-panel" style={{ boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)' }}>
+            <div className="panel-header-row" style={{ alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '38px',
+                height: '38px',
+                backgroundColor: 'var(--govuk-black)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="rgba(255,255,255,0.2)" />
+                </svg>
               </div>
-            </div>
-
-            <div className="govuk-inset-text">
-              Use your registered institutional credentials to access the secure notes service.
+              <div>
+                <h2 className="panel-heading" style={{ fontSize: '20px' }}>
+                  {isRegister ? 'Care Guide Registration' : 'Care Guide Sign In'}
+                </h2>
+                <p className="panel-subtext">Secure Notes Workspace</p>
+              </div>
             </div>
 
             <form onSubmit={handleAuthSubmit}>
@@ -746,22 +734,7 @@ export default function App() {
             </button>
           </div>
         </div>
-      </main>
-
-      {/* Institutional Footer */}
-      <footer className="govuk-footer">
-        <div className="govuk-footer-inner">
-          <div className="govuk-footer-meta">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#505a5f" strokeWidth="2" className="govuk-ogl-icon">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            <span>
-              Institutional Secure Note-Taking Platform • 256-bit Encrypted Session • Role-Based Access Control
-            </span>
-          </div>
-          <div className="govuk-footer-copyright">&copy; Care Guide UK Institutional Workspace</div>
-        </div>
-      </footer>
+      </div>
     </div>
     );
   }
@@ -773,12 +746,12 @@ export default function App() {
       <header className="govuk-header-bar">
         <div className="govuk-header-inner">
           <div className="govuk-header-brand">
-            <div className="govuk-crown-logo" title="Care Guide UK">
+            <div className="govuk-crown-logo" title="Care Guide">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="rgba(255,255,255,0.2)" />
               </svg>
             </div>
-            <span className="govuk-logotype-text">Care Guide UK</span>
+            <span className="govuk-logotype-text">Care Guide</span>
             <span className="govuk-service-title">Secure Notes Workspace</span>
           </div>
 
@@ -1566,7 +1539,7 @@ export default function App() {
               Institutional Secure Note-Taking Platform • 256-bit Encrypted Session • Role-Based Access Control
             </span>
           </div>
-          <div className="govuk-footer-copyright">&copy; Care Guide UK Institutional Workspace</div>
+          <div className="govuk-footer-copyright">&copy; Care Guide Secure Notes Workspace</div>
         </div>
       </footer>
     </div>
