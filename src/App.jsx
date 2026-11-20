@@ -24,10 +24,27 @@ const quillFormats = [
   'blockquote', 'code-block'
 ];
 
-// Rich text stripping and reading estimation helpers
+// Rich text stripping, entity decoding, and reading estimation helpers
 const stripHtml = (html) => {
   if (!html) return '';
-  return html.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+  if (typeof document !== 'undefined') {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const text = tmp.textContent || tmp.innerText || '';
+    return text
+      .replace(/\u00a0/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  return html
+    .replace(/<[^>]*>?/gm, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
 };
 
 const getWordCount = (content) => {
@@ -124,6 +141,7 @@ export default function App() {
   // Auth Form State
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
   const [authData, setAuthData] = useState({
     name: '',
     email: '',
@@ -141,7 +159,10 @@ export default function App() {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest', 'alpha'
   const [newNote, setNewNote] = useState({ title: '', content: '' });
+  const [editorResetKey, setEditorResetKey] = useState(0);
+  const [isSubmittingNote, setIsSubmittingNote] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
+  const [isUpdatingNote, setIsUpdatingNote] = useState(false);
   const [viewingNote, setViewingNote] = useState(null);
   const [loadingNotes, setLoadingNotes] = useState(false);
 
@@ -191,17 +212,20 @@ export default function App() {
   // --- AUTH HANDLERS ---
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmittingAuth(true);
     try {
       const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
       const payload = isRegister
         ? {
-            ...authData,
+            name: authData.name.trim(),
+            email: authData.email.trim(),
+            password: authData.password,
             role: authData.role || 'user',
             interests: authData.interests
               ? authData.interests.split(',').map((i) => i.trim()).filter(Boolean)
               : []
           }
-        : { email: authData.email, password: authData.password };
+        : { email: authData.email.trim(), password: authData.password };
 
       const data = await request(endpoint, {
         method: 'POST',
@@ -211,10 +235,18 @@ export default function App() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data));
       setUser(data);
+      setAuthData({ name: '', email: '', password: '', role: 'user', interests: '' });
       notifySuccess(isRegister ? 'Account Registered' : 'Authentication Successful', `Welcome, ${data.name}`);
     } catch (err) {
       notifyError(err.message);
+    } finally {
+      setIsSubmittingAuth(false);
     }
+  };
+
+  const handleToggleAuthMode = () => {
+    setIsRegister(!isRegister);
+    setAuthData({ name: '', email: '', password: '', role: 'user', interests: '' });
   };
 
   const handleLogout = async () => {
@@ -246,27 +278,56 @@ export default function App() {
 
   const handleCreateNote = async (e) => {
     e.preventDefault();
+    if (!newNote.title.trim()) {
+      notifyError('Please enter a note title.');
+      return;
+    }
+    const cleanContent = stripHtml(newNote.content);
+    if (!cleanContent) {
+      notifyError('Please enter some content for the note.');
+      return;
+    }
+
+    setIsSubmittingNote(true);
     try {
       await request('/api/notes', {
         method: 'POST',
-        body: JSON.stringify(newNote)
+        body: JSON.stringify({
+          title: newNote.title.trim(),
+          content: newNote.content
+        })
       });
+      // Fully reset form state and force ReactQuill re-render
       setNewNote({ title: '', content: '' });
+      setEditorResetKey((prev) => prev + 1);
       toast.success('Note created successfully');
       fetchNotes(1, pageSize, noteSearch, sortOrder);
     } catch (err) {
       notifyError(err.message);
+    } finally {
+      setIsSubmittingNote(false);
     }
   };
 
   const handleUpdateNote = async (e) => {
     e.preventDefault();
     if (!editingNote) return;
+    if (!editingNote.title.trim()) {
+      notifyError('Please enter a note title.');
+      return;
+    }
+    const cleanContent = stripHtml(editingNote.content);
+    if (!cleanContent) {
+      notifyError('Please enter some content for the note.');
+      return;
+    }
+
+    setIsUpdatingNote(true);
     try {
       await request(`/api/notes/${editingNote._id}`, {
         method: 'PUT',
         body: JSON.stringify({
-          title: editingNote.title,
+          title: editingNote.title.trim(),
           content: editingNote.content
         })
       });
@@ -275,6 +336,8 @@ export default function App() {
       fetchNotes(notePage, pageSize, noteSearch, sortOrder);
     } catch (err) {
       notifyError(err.message);
+    } finally {
+      setIsUpdatingNote(false);
     }
   };
 
@@ -601,8 +664,24 @@ export default function App() {
               </div>
             )}
 
-            <button type="submit" className="btn-gov btn-gov-primary" style={{ width: '100%', marginTop: '10px', padding: '10px' }}>
-              {isRegister ? 'Complete Registration' : 'Sign In'}
+            <button
+              type="submit"
+              className="btn-gov btn-gov-primary"
+              disabled={isSubmittingAuth}
+              style={{
+                width: '100%',
+                marginTop: '10px',
+                padding: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              {isSubmittingAuth && <span className="spinner-icon" style={{ borderTopColor: '#ffffff' }} />}
+              {isSubmittingAuth
+                ? (isRegister ? 'Creating Account...' : 'Signing In...')
+                : (isRegister ? 'Complete Registration' : 'Sign In')}
             </button>
           </form>
 
@@ -610,7 +689,7 @@ export default function App() {
             {isRegister ? 'Already registered?' : 'Need an account?'}{' '}
             <button
               type="button"
-              onClick={() => setIsRegister(!isRegister)}
+              onClick={handleToggleAuthMode}
               style={{
                 background: 'none',
                 border: 'none',
@@ -768,8 +847,14 @@ export default function App() {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn-gov btn-gov-primary">
-                  Save Changes
+                <button
+                  type="submit"
+                  className="btn-gov btn-gov-primary"
+                  disabled={isUpdatingNote}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                >
+                  {isUpdatingNote && <span className="spinner-icon" style={{ borderTopColor: '#ffffff' }} />}
+                  {isUpdatingNote ? 'Saving Changes...' : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -861,23 +946,30 @@ export default function App() {
                   required
                   className="field-input"
                   placeholder="Enter title..."
-                  value={newNote.title}
+                  value={newNote.title || ''}
                   onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
                 />
               </div>
               <div className="field-group quill-editor-wrapper">
                 <label className="field-label">Content Body</label>
                 <ReactQuill
+                  key={editorResetKey}
                   theme="snow"
-                  value={newNote.content}
-                  onChange={(val) => setNewNote({ ...newNote, content: val })}
+                  value={newNote.content || ''}
+                  onChange={(val) => setNewNote((prev) => ({ ...prev, content: val }))}
                   modules={quillModules}
                   formats={quillFormats}
                   placeholder="Write comprehensive, encrypted note body here..."
                 />
               </div>
-              <button type="submit" className="btn-gov btn-gov-primary">
-                Save Note
+              <button
+                type="submit"
+                className="btn-gov btn-gov-primary"
+                disabled={isSubmittingNote}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+              >
+                {isSubmittingNote && <span className="spinner-icon" style={{ borderTopColor: '#ffffff' }} />}
+                {isSubmittingNote ? 'Saving Note...' : 'Save Note'}
               </button>
             </form>
           </div>
@@ -1140,7 +1232,7 @@ export default function App() {
                     type="text"
                     required
                     className="field-input"
-                    value={newAdminUser.name}
+                    value={newAdminUser.name || ''}
                     onChange={(e) => setNewAdminUser({ ...newAdminUser, name: e.target.value })}
                   />
                 </div>
@@ -1150,7 +1242,7 @@ export default function App() {
                     type="email"
                     required
                     className="field-input"
-                    value={newAdminUser.email}
+                    value={newAdminUser.email || ''}
                     onChange={(e) => setNewAdminUser({ ...newAdminUser, email: e.target.value })}
                   />
                 </div>
@@ -1177,7 +1269,7 @@ export default function App() {
                       type={showAdminPassword ? 'text' : 'password'}
                       required
                       className="field-input"
-                      value={newAdminUser.password}
+                      value={newAdminUser.password || ''}
                       onChange={(e) => setNewAdminUser({ ...newAdminUser, password: e.target.value })}
                     />
                     <button
@@ -1193,7 +1285,7 @@ export default function App() {
                   <label className="field-label">Role</label>
                   <select
                     className="field-select"
-                    value={newAdminUser.role}
+                    value={newAdminUser.role || 'user'}
                     onChange={(e) => setNewAdminUser({ ...newAdminUser, role: e.target.value })}
                   >
                     <option value="user">User</option>
@@ -1205,7 +1297,7 @@ export default function App() {
                   <input
                     type="text"
                     className="field-input"
-                    value={newAdminUser.interests}
+                    value={newAdminUser.interests || ''}
                     onChange={(e) => setNewAdminUser({ ...newAdminUser, interests: e.target.value })}
                   />
                 </div>
