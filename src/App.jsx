@@ -150,14 +150,11 @@ export default function App() {
     interests: ''
   });
 
-  // Notes State & Enterprise Table Controls
+  // Notes State & Controls
   const [notes, setNotes] = useState([]);
   const [notePage, setNotePage] = useState(1);
-  const [notePages, setNotePages] = useState(1);
-  const [pageSize, setPageSize] = useState(6);
   const [noteSearch, setNoteSearch] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
-  const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest', 'alpha'
   const [newNote, setNewNote] = useState({ title: '', content: '' });
   const [editorResetKey, setEditorResetKey] = useState(0);
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
@@ -169,7 +166,6 @@ export default function App() {
   // Admin Users State
   const [adminUsers, setAdminUsers] = useState([]);
   const [userPage, setUserPage] = useState(1);
-  const [userPages, setUserPages] = useState(1);
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('all');
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -183,25 +179,19 @@ export default function App() {
     interests: ''
   });
 
-  // Dynamic server-side fetch for notes with debounce
+  // Fetch initial notes on login or tab switch
   useEffect(() => {
     if (user && activeTab === 'notes') {
-      const timer = setTimeout(() => {
-        fetchNotes(notePage, pageSize, noteSearch, sortOrder);
-      }, 250);
-      return () => clearTimeout(timer);
+      fetchNotes();
     }
-  }, [user, activeTab, notePage, pageSize, noteSearch, sortOrder]);
+  }, [user, activeTab]);
 
-  // Dynamic server-side fetch for admin users with debounce
+  // Fetch admin users on login or admin tab switch
   useEffect(() => {
     if (user && user.role === 'admin' && activeTab === 'admin') {
-      const timer = setTimeout(() => {
-        fetchAdminUsers(userPage, userSearch, userRoleFilter);
-      }, 250);
-      return () => clearTimeout(timer);
+      fetchAdminUsers();
     }
-  }, [user, activeTab, userPage, userSearch, userRoleFilter]);
+  }, [user, activeTab]);
 
   // Copy helper with react-hot-toast notification
   const copyToClipboard = (text, label = 'Copied to clipboard') => {
@@ -261,14 +251,11 @@ export default function App() {
   };
 
   // --- NOTES HANDLERS ---
-  const fetchNotes = async (page = notePage, limit = pageSize, search = noteSearch, sort = sortOrder) => {
+  const fetchNotes = async () => {
     setLoadingNotes(true);
     try {
-      const query = `/api/notes?page=${page}&limit=${limit}&search=${encodeURIComponent(search || '')}&sort=${sort || 'newest'}`;
-      const data = await request(query);
+      const data = await request('/api/notes?limit=100&sort=newest');
       setNotes(data.notes || []);
-      setNotePage(data.page || 1);
-      setNotePages(data.pages || 1);
     } catch (err) {
       notifyError(err.message);
     } finally {
@@ -301,7 +288,7 @@ export default function App() {
       setNewNote({ title: '', content: '' });
       setEditorResetKey((prev) => prev + 1);
       toast.success('Note created successfully');
-      fetchNotes(1, pageSize, noteSearch, sortOrder);
+      fetchNotes();
     } catch (err) {
       notifyError(err.message);
     } finally {
@@ -333,7 +320,7 @@ export default function App() {
       });
       setEditingNote(null);
       toast.success('Note updated successfully');
-      fetchNotes(notePage, pageSize, noteSearch, sortOrder);
+      fetchNotes();
     } catch (err) {
       notifyError(err.message);
     } finally {
@@ -348,7 +335,7 @@ export default function App() {
     try {
       await request(`/api/notes/${id}`, { method: 'DELETE' });
       toast.success('Note deleted successfully');
-      fetchNotes(notePage, pageSize, noteSearch, sortOrder);
+      fetchNotes();
     } catch (err) {
       notifyError(err.message);
     }
@@ -380,31 +367,59 @@ export default function App() {
     toast.success('Notes exported to CSV');
   };
 
-  // Notes are dynamically queried and sorted on the server
-  const processedNotes = notes;
+  // Dynamic search, text extraction & pagination for Notes
+  const filteredNotes = notes.filter((n) => {
+    if (!noteSearch.trim()) return true;
+    const q = noteSearch.toLowerCase().trim();
+    const titleMatch = (n.title || '').toLowerCase().includes(q);
+    const contentMatch = stripHtml(n.content || '').toLowerCase().includes(q);
+    const authorMatch = (n.user?.name || '').toLowerCase().includes(q);
+    const emailMatch = (n.user?.email || '').toLowerCase().includes(q);
+    return titleMatch || contentMatch || authorMatch || emailMatch;
+  });
+
+  const NOTES_PER_PAGE = 6;
+  const notePages = Math.max(1, Math.ceil(filteredNotes.length / NOTES_PER_PAGE));
+  const currentNotePage = Math.min(notePage, notePages);
+  const processedNotes = filteredNotes.slice((currentNotePage - 1) * NOTES_PER_PAGE, currentNotePage * NOTES_PER_PAGE);
 
   // --- ADMIN USER MANAGEMENT HANDLERS ---
-  const fetchAdminUsers = async (page = userPage, search = userSearch, role = userRoleFilter) => {
+  const fetchAdminUsers = async () => {
     setLoadingUsers(true);
     try {
-      const activeRole = role && role !== 'all' ? role.trim().toLowerCase() : '';
-      const roleParam = activeRole ? `&role=${encodeURIComponent(activeRole)}` : '';
-      const query = `/api/users?page=${page}&limit=5&search=${encodeURIComponent(search || '')}${roleParam}`;
-      const data = await request(query);
-      let list = data.users || [];
-      // Safety client-side filter fallback in case server deployment is in progress
-      if (activeRole) {
-        list = list.filter((u) => (u.role || '').toLowerCase() === activeRole);
-      }
-      setAdminUsers(list);
-      setUserPage(data.page || 1);
-      setUserPages(data.pages || 1);
+      const data = await request('/api/users?limit=100');
+      setAdminUsers(data.users || []);
     } catch (err) {
       notifyError(err.message);
     } finally {
       setLoadingUsers(false);
     }
   };
+
+  // Dynamic search, role filter & pagination for Admin Users
+  const filteredUsers = adminUsers.filter((u) => {
+    // 1. Role filter
+    if (userRoleFilter && userRoleFilter !== 'all') {
+      if ((u.role || '').toLowerCase() !== userRoleFilter.toLowerCase()) {
+        return false;
+      }
+    }
+    // 2. Search keyword filter
+    if (userSearch.trim()) {
+      const q = userSearch.toLowerCase().trim();
+      const nameMatch = (u.name || '').toLowerCase().includes(q);
+      const emailMatch = (u.email || '').toLowerCase().includes(q);
+      const roleMatch = (u.role || '').toLowerCase().includes(q);
+      const interestMatch = Array.isArray(u.interests) && u.interests.some((i) => i.toLowerCase().includes(q));
+      return nameMatch || emailMatch || roleMatch || interestMatch;
+    }
+    return true;
+  });
+
+  const USERS_PER_PAGE = 5;
+  const userPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
+  const currentUserPage = Math.min(userPage, userPages);
+  const displayUsers = filteredUsers.slice((currentUserPage - 1) * USERS_PER_PAGE, currentUserPage * USERS_PER_PAGE);
 
   const handleAddAdminUser = async (e) => {
     e.preventDefault();
@@ -433,7 +448,7 @@ export default function App() {
       setNewAdminUser({ name: '', email: '', password: '', role: 'user', interests: '' });
       notifySuccess('User Enrolled Successfully', `${created.name} (${created.email}) has been assigned role: ${created.role.toUpperCase()}`);
       toast.success('User account created');
-      fetchAdminUsers(1, userSearch, userRoleFilter);
+      fetchAdminUsers();
     } catch (err) {
       notifyError(err.message || 'Failed to create user account.');
     } finally {
@@ -448,7 +463,7 @@ export default function App() {
     try {
       await request(`/api/users/${id}`, { method: 'DELETE' });
       notifySuccess('Member Removed', 'User record cleared');
-      fetchAdminUsers(userPage);
+      fetchAdminUsers();
     } catch (err) {
       notifyError(err.message);
     }
@@ -987,54 +1002,43 @@ export default function App() {
               </div>
 
               {/* Data Table Controls Bar */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                 {/* Search */}
-                <input
-                  type="text"
-                  className="field-input"
-                  style={{ width: '160px', padding: '6px 10px', fontSize: '13px' }}
-                  placeholder="Search notes..."
-                  value={noteSearch}
-                  onChange={(e) => {
-                    setNoteSearch(e.target.value);
-                    setNotePage(1);
-                  }}
-                />
-
-                {/* Rows Per Page Selector */}
-                <select
-                  className="field-select"
-                  style={{ width: '110px', padding: '6px 8px', fontSize: '12px' }}
-                  value={pageSize}
-                  onChange={(e) => {
-                    const newSize = Number(e.target.value);
-                    setPageSize(newSize);
-                    setNotePage(1);
-                    fetchNotes(1, newSize, noteSearch, sortOrder);
-                  }}
-                  title="Rows per page"
-                >
-                  <option value={6}>6 per page</option>
-                  <option value={12}>12 per page</option>
-                  <option value={24}>24 per page</option>
-                </select>
-
-                {/* Sort Order Dropdown */}
-                <select
-                  className="field-select"
-                  style={{ width: '105px', padding: '6px 8px', fontSize: '12px' }}
-                  value={sortOrder}
-                  onChange={(e) => {
-                    const newSort = e.target.value;
-                    setSortOrder(newSort);
-                    setNotePage(1);
-                    fetchNotes(1, pageSize, noteSearch, newSort);
-                  }}
-                >
-                  <option value="newest">Newest</option>
-                  <option value="oldest">Oldest</option>
-                  <option value="alpha">A-Z Title</option>
-                </select>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    className="field-input"
+                    style={{ width: '220px', padding: '6px 28px 6px 10px', fontSize: '13px' }}
+                    placeholder="Search notes..."
+                    value={noteSearch}
+                    onChange={(e) => {
+                      setNoteSearch(e.target.value);
+                      setNotePage(1);
+                    }}
+                  />
+                  {noteSearch && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNoteSearch('');
+                        setNotePage(1);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--text-muted)',
+                        fontSize: '14px',
+                        padding: 0
+                      }}
+                      title="Clear search"
+                    >
+                      &times;
+                    </button>
+                  )}
+                </div>
 
                 {/* View Mode Toggle */}
                 <div className="view-mode-toggle">
@@ -1189,19 +1193,19 @@ export default function App() {
               <button
                 type="button"
                 className="btn-gov btn-gov-secondary btn-gov-sm"
-                disabled={loadingNotes || notePage <= 1}
+                disabled={loadingNotes || currentNotePage <= 1}
                 onClick={() => setNotePage((p) => Math.max(p - 1, 1))}
               >
                 &larr; Previous Page
               </button>
               <span>
-                Page <strong>{notePage}</strong> of <strong>{notePages || 1}</strong>
+                Page <strong>{currentNotePage}</strong> of <strong>{notePages || 1}</strong>
                 {loadingNotes && <span className="spinner-icon" style={{ marginLeft: '8px' }} />}
               </span>
               <button
                 type="button"
                 className="btn-gov btn-gov-secondary btn-gov-sm"
-                disabled={loadingNotes || notePage >= (notePages || 1)}
+                disabled={loadingNotes || currentNotePage >= (notePages || 1)}
                 onClick={() => setNotePage((p) => Math.min(p + 1, notePages || 1))}
               >
                 Next Page &rarr;
@@ -1334,24 +1338,47 @@ export default function App() {
             {/* Dynamic Filter & Search Toolbar */}
             <div className="table-filter-bar">
               <div className="filter-group-left">
-                <input
-                  type="text"
-                  className="table-search-input"
-                  placeholder="Search user by name or email..."
-                  value={userSearch}
-                  onChange={(e) => {
-                    setUserSearch(e.target.value);
-                    setUserPage(1);
-                  }}
-                />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    className="table-search-input"
+                    style={{ paddingRight: userSearch ? '28px' : '10px' }}
+                    placeholder="Search user by name or email..."
+                    value={userSearch}
+                    onChange={(e) => {
+                      setUserSearch(e.target.value);
+                      setUserPage(1);
+                    }}
+                  />
+                  {userSearch && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserSearch('');
+                        setUserPage(1);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--text-muted)',
+                        fontSize: '14px',
+                        padding: 0
+                      }}
+                      title="Clear search"
+                    >
+                      &times;
+                    </button>
+                  )}
+                </div>
                 <select
                   className="table-role-select"
                   value={userRoleFilter}
                   onChange={(e) => {
-                    const newRole = e.target.value;
-                    setUserRoleFilter(newRole);
+                    setUserRoleFilter(e.target.value);
                     setUserPage(1);
-                    fetchAdminUsers(1, userSearch, newRole);
                   }}
                 >
                   <option value="all">All Roles</option>
@@ -1362,7 +1389,7 @@ export default function App() {
               <button
                 type="button"
                 className="btn-gov btn-gov-secondary btn-gov-sm"
-                onClick={() => fetchAdminUsers(userPage, userSearch, userRoleFilter)}
+                onClick={fetchAdminUsers}
                 disabled={loadingUsers}
               >
                 Refresh List
@@ -1390,14 +1417,14 @@ export default function App() {
                         </div>
                       </td>
                     </tr>
-                  ) : adminUsers.length === 0 ? (
+                  ) : displayUsers.length === 0 ? (
                     <tr>
                       <td colSpan="5" style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-muted)' }}>
                         No user accounts match current search criteria.
                       </td>
                     </tr>
                   ) : (
-                    adminUsers.map((u) => (
+                    displayUsers.map((u) => (
                       <tr key={u._id}>
                         <td>
                           <strong>{u.name}</strong>
@@ -1444,19 +1471,19 @@ export default function App() {
               <button
                 type="button"
                 className="btn-gov btn-gov-secondary btn-gov-sm"
-                disabled={loadingUsers || userPage <= 1}
+                disabled={loadingUsers || currentUserPage <= 1}
                 onClick={() => setUserPage((p) => Math.max(p - 1, 1))}
               >
                 &larr; Previous Page
               </button>
               <span>
-                Page <strong>{userPage}</strong> of <strong>{userPages || 1}</strong>
+                Page <strong>{currentUserPage}</strong> of <strong>{userPages || 1}</strong>
                 {loadingUsers && <span className="spinner-icon" style={{ marginLeft: '8px' }} />}
               </span>
               <button
                 type="button"
                 className="btn-gov btn-gov-secondary btn-gov-sm"
-                disabled={loadingUsers || userPage >= (userPages || 1)}
+                disabled={loadingUsers || currentUserPage >= (userPages || 1)}
                 onClick={() => setUserPage((p) => Math.min(p + 1, userPages || 1))}
               >
                 Next Page &rarr;
