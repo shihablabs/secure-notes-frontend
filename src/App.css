@@ -1,10 +1,10 @@
 /* ==========================================================================
-   OFFICIAL GOV.UK DESIGN SYSTEM (GDS) THEME
-   Strict adherence to GOV.UK Design System colors, typography & components
+   OFFICIAL Institutional (GDS) DESIGN SYSTEM (GDS) THEME
+   Strict adherence to Institutional (GDS) Design System colors, typography & components
    ========================================================================== */
 
 :root {
-  /* Official GOV.UK Palette */
+  /* Official Institutional (GDS) Palette */
   --govuk-black: #0b0c0c;
   --govuk-text: #0b0c0c;
   --govuk-secondary-text: #505a5f;
@@ -55,7 +55,7 @@ h1, h2, h3, h4, h5, h6 {
   margin-top: 0;
 }
 
-/* Focus State - The Signature GOV.UK Yellow Box */
+/* Focus State - The Signature Institutional (GDS) Yellow Box */
 a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:focus {
   outline: 3px solid var(--govuk-yellow-focus) !important;
   outline-offset: 0 !important;
@@ -64,7 +64,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   box-shadow: 0 2px 0 var(--govuk-black) !important;
 }
 
-/* Full-width Official GOV.UK Header */
+/* Full-width Official Institutional (GDS) Header */
 .govuk-header-bar {
   background-color: var(--govuk-black);
   border-bottom: 10px solid var(--govuk-blue);
@@ -113,7 +113,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   line-height: 1.2;
 }
 
-/* Official GOV.UK Phase Banner (BETA) */
+/* Official Institutional (GDS) Phase Banner (BETA) */
 .govuk-phase-banner {
   background-color: var(--govuk-white);
   border-bottom: 1px solid var(--govuk-border);
@@ -152,7 +152,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   width: 100%;
 }
 
-/* Navigation Tabs - GOV.UK Sub-nav style */
+/* Navigation Tabs - Institutional (GDS) Sub-nav style */
 .header-nav-tabs {
   display: flex;
   gap: 4px;
@@ -302,7 +302,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   color: var(--govuk-red-hover);
 }
 
-/* Official GOV.UK Inset Text */
+/* Official Institutional (GDS) Inset Text */
 .govuk-inset-text {
   font-family: var(--font-family);
   font-weight: 400;
@@ -348,7 +348,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   margin-bottom: 0;
 }
 
-/* Form Groups & Labels (GOV.UK Standard) */
+/* Form Groups & Labels (Institutional (GDS) Standard) */
 .field-group {
   margin-bottom: 20px;
 }
@@ -368,7 +368,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   margin-bottom: 6px;
 }
 
-/* Official GOV.UK Inputs & Selects - 2px Solid Black Border, Square Corners */
+/* Official Institutional (GDS) Inputs & Selects - 2px Solid Black Border, Square Corners */
 .field-input, .field-textarea, .field-select, .table-search-input, .table-role-select {
   width: 100%;
   font-family: var(--font-family);
@@ -509,7 +509,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
 }
 
 /* ==========================================================================
-   OFFICIAL GOV.UK BUTTONS (3D Bottom Shadow, Square Corners, Bold Text)
+   OFFICIAL Institutional (GDS) BUTTONS (3D Bottom Shadow, Square Corners, Bold Text)
    ========================================================================== */
 
 .btn-gov {
@@ -536,7 +536,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   box-shadow: none !important;
 }
 
-/* GOV.UK Primary Button (Green) */
+/* Institutional (GDS) Primary Button (Green) */
 .btn-gov-primary {
   background-color: var(--govuk-green) !important;
   box-shadow: 0 2px 0 var(--govuk-green-shadow) !important;
@@ -547,7 +547,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   background-color: var(--govuk-green-hover) !important;
 }
 
-/* GOV.UK Secondary Button (Grey) */
+/* Institutional (GDS) Secondary Button (Grey) */
 .btn-gov-secondary {
   background-color: var(--govuk-canvas) !important;
   box-shadow: 0 2px 0 #929a9f !important;
@@ -558,7 +558,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   background-color: #dbdad9 !important;
 }
 
-/* GOV.UK Warning / Danger Button (Red) */
+/* Institutional (GDS) Warning / Danger Button (Red) */
 .btn-gov-danger {
   background-color: var(--govuk-red) !important;
   box-shadow: 0 2px 0 var(--govuk-red-shadow) !important;
@@ -620,7 +620,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   margin-top: 16px;
 }
 
-/* Single Note Card - GOV.UK Style with Blue Top Accent Stripe */
+/* Single Note Card - Institutional (GDS) Style with Blue Top Accent Stripe */
 .single-note-card {
   background-color: var(--govuk-white);
   border: 1px solid var(--govuk-border);
@@ -676,7 +676,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
 }
 
 /* ==========================================================================
-   OFFICIAL GOV.UK TABLE STYLE
+   OFFICIAL Institutional (GDS) TABLE STYLE
    ========================================================================== */
 
 .academic-table {
@@ -704,7 +704,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   background-color: rgba(0, 0, 0, 0.02);
 }
 
-/* Official GOV.UK Tags */
+/* Official Institutional (GDS) Tags */
 .badge-role, .govuk-tag {
   display: inline-block;
   padding: 3px 8px;
@@ -768,7 +768,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   padding: 7px 10px;
 }
 
-/* Official GOV.UK Pagination */
+/* Official Institutional (GDS) Pagination */
 .academic-pagination {
   display: flex;
   justify-content: space-between;
@@ -780,7 +780,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   font-weight: 600;
 }
 
-/* ReactQuill Editor GOV.UK Styling */
+/* ReactQuill Editor Institutional (GDS) Styling */
 .quill-editor-wrapper {
   margin-bottom: 24px;
 }
@@ -801,7 +801,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   background-color: #ffffff;
 }
 
-/* Modal Dialog - GOV.UK Style */
+/* Modal Dialog - Institutional (GDS) Style */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -922,7 +922,7 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, .nav-tab-btn:f
   font-size: 14px;
 }
 
-/* Official GOV.UK Footer */
+/* Official Institutional (GDS) Footer */
 .govuk-footer {
   background-color: var(--govuk-canvas);
   border-top: 1px solid var(--govuk-border);

@@ -507,28 +507,26 @@ export default function App() {
   const wordCount = getWordCount(newNote.content);
   const readingTime = getReadingTime(newNote.content);
 
-  // --- IF NOT LOGGED IN: OFFICIAL GOV.UK AUTHENTICATION SCREEN ---
+  // --- IF NOT LOGGED IN: INSTITUTIONAL AUTHENTICATION SCREEN ---
   if (!user) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        {/* Official GOV.UK Header */}
+        {/* Institutional Header */}
         <header className="govuk-header-bar">
           <div className="govuk-header-inner">
             <div className="govuk-header-brand">
-              <div className="govuk-crown-logo" title="HM Government">
-                <svg width="34" height="28" viewBox="0 0 34 28" fill="none">
-                  <path d="M17 2L21 11L31 6L26 19H8L3 6L13 11L17 2Z" fill="#ffffff" />
-                  <rect x="7" y="21" width="20" height="3" fill="#ffffff" />
-                  <rect x="5" y="25" width="24" height="3" fill="#ffffff" />
+              <div className="govuk-crown-logo" title="Care Guide UK">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="rgba(255,255,255,0.2)" />
                 </svg>
               </div>
-              <span className="govuk-logotype-text">GOV.UK</span>
-              <span className="govuk-service-title">Care Guide UK – Secure Notes</span>
+              <span className="govuk-logotype-text">Care Guide UK</span>
+              <span className="govuk-service-title">Secure Notes</span>
             </div>
           </div>
         </header>
 
-        {/* Official GOV.UK Phase Banner */}
+        {/* Phase Banner */}
         <div className="govuk-phase-banner">
           <div className="govuk-phase-banner-inner">
             <span className="govuk-phase-tag">BETA</span>
@@ -750,21 +748,18 @@ export default function App() {
         </div>
       </main>
 
-      {/* Official GOV.UK Footer */}
+      {/* Institutional Footer */}
       <footer className="govuk-footer">
         <div className="govuk-footer-inner">
           <div className="govuk-footer-meta">
-            <svg width="41" height="17" viewBox="0 0 41 17" fill="none" className="govuk-ogl-icon">
-              <path d="M10.8 13.9c-2.4 0-4.3-1.9-4.3-4.3s1.9-4.3 4.3-4.3 4.3 1.9 4.3 4.3-1.9 4.3-4.3 4.3zm0-10.8C6.9 3.1 3.7 6.3 3.7 10.2s3.2 7.1 7.1 7.1 7.1-3.2 7.1-7.1-3.2-7.1-7.1-7.1zm17.9 10.8c-2.4 0-4.3-1.9-4.3-4.3s1.9-4.3 4.3-4.3 4.3 1.9 4.3 4.3-1.9 4.3-4.3 4.3zm0-10.8c-3.9 0-7.1 3.2-7.1 7.1s3.2 7.1 7.1 7.1 7.1-3.2 7.1-7.1-3.2-7.1-7.1-7.1z" fill="#505a5f"/>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#505a5f" strokeWidth="2" className="govuk-ogl-icon">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
             <span>
-              All content is available under the{' '}
-              <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noreferrer" className="govuk-footer-link">
-                Open Government Licence v3.0
-              </a>, except where otherwise stated
+              Institutional Secure Note-Taking Platform • 256-bit Encrypted Session • Role-Based Access Control
             </span>
           </div>
-          <div className="govuk-footer-copyright">&copy; Crown copyright</div>
+          <div className="govuk-footer-copyright">&copy; Care Guide UK Institutional Workspace</div>
         </div>
       </footer>
     </div>
@@ -774,19 +769,17 @@ export default function App() {
   // --- LOGGED IN INSTITUTIONAL DASHBOARD ---
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Official GOV.UK Header */}
+      {/* Institutional Header */}
       <header className="govuk-header-bar">
         <div className="govuk-header-inner">
           <div className="govuk-header-brand">
-            <div className="govuk-crown-logo" title="HM Government">
-              <svg width="34" height="28" viewBox="0 0 34 28" fill="none">
-                <path d="M17 2L21 11L31 6L26 19H8L3 6L13 11L17 2Z" fill="#ffffff" />
-                <rect x="7" y="21" width="20" height="3" fill="#ffffff" />
-                <rect x="5" y="25" width="24" height="3" fill="#ffffff" />
+            <div className="govuk-crown-logo" title="Care Guide UK">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="rgba(255,255,255,0.2)" />
               </svg>
             </div>
-            <span className="govuk-logotype-text">GOV.UK</span>
-            <span className="govuk-service-title">Care Guide UK – Secure Notes</span>
+            <span className="govuk-logotype-text">Care Guide UK</span>
+            <span className="govuk-service-title">Secure Notes Workspace</span>
           </div>
 
           {/* Profile Avatar Dropdown */}
@@ -836,7 +829,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Official GOV.UK Phase Banner */}
+      {/* Phase Banner */}
       <div className="govuk-phase-banner">
         <div className="govuk-phase-banner-inner">
           <span className="govuk-phase-tag">BETA</span>
@@ -1562,21 +1555,18 @@ export default function App() {
 
       </main>
 
-      {/* Official GOV.UK Footer */}
+      {/* Institutional Footer */}
       <footer className="govuk-footer">
         <div className="govuk-footer-inner">
           <div className="govuk-footer-meta">
-            <svg width="41" height="17" viewBox="0 0 41 17" fill="none" className="govuk-ogl-icon">
-              <path d="M10.8 13.9c-2.4 0-4.3-1.9-4.3-4.3s1.9-4.3 4.3-4.3 4.3 1.9 4.3 4.3-1.9 4.3-4.3 4.3zm0-10.8C6.9 3.1 3.7 6.3 3.7 10.2s3.2 7.1 7.1 7.1 7.1-3.2 7.1-7.1-3.2-7.1-7.1-7.1zm17.9 10.8c-2.4 0-4.3-1.9-4.3-4.3s1.9-4.3 4.3-4.3 4.3 1.9 4.3 4.3-1.9 4.3-4.3 4.3zm0-10.8c-3.9 0-7.1 3.2-7.1 7.1s3.2 7.1 7.1 7.1 7.1-3.2 7.1-7.1-3.2-7.1-7.1-7.1z" fill="#505a5f"/>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#505a5f" strokeWidth="2" className="govuk-ogl-icon">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
             <span>
-              All content is available under the{' '}
-              <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noreferrer" className="govuk-footer-link">
-                Open Government Licence v3.0
-              </a>, except where otherwise stated
+              Institutional Secure Note-Taking Platform • 256-bit Encrypted Session • Role-Based Access Control
             </span>
           </div>
-          <div className="govuk-footer-copyright">&copy; Crown copyright</div>
+          <div className="govuk-footer-copyright">&copy; Care Guide UK Institutional Workspace</div>
         </div>
       </footer>
     </div>
